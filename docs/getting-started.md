@@ -21,7 +21,7 @@ Of course if you do not want to use certain parts of the framework you can remov
 
 #include "WiFiManager.h"
 #include "webServer.h"
-#include "updater.h"
+#include "otaUpdateHelper.h"
 #include "fetch.h"
 #include "configManager.h"
 #include "timeSync.h"
@@ -41,7 +41,7 @@ void loop()
 {
     //software interrupts
     WiFiManager.loop();
-    updater.loop();
+    otaUpdateHelper.loop();
 }
 ```
 

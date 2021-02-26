@@ -8,7 +8,7 @@
 //Access to other classes for GUI functions
 #include "WiFiManager.h"
 #include "configManager.h"
-#include "updater.h"
+#include "OtaUpdateHelper.h"
 #include "dashboard.h"
 
 void webServer::begin()
@@ -97,7 +97,7 @@ void webServer::bindAll()
 
     //update from LittleFS
     server.on(PSTR("/api/update"), HTTP_POST, [](AsyncWebServerRequest *request) {        
-        updater.requestStart("/" + request->arg("filename"));
+        otaUpdateHelper.requestStart("/" + request->arg("filename"));
         request->send(200, PSTR("text/html"), "");
     });
 
@@ -106,7 +106,7 @@ void webServer::bindAll()
         String JSON;
         StaticJsonDocument<200> jsonBuffer;
 
-        jsonBuffer["status"] = updater.getStatus();
+        jsonBuffer["status"] = otaUpdateHelper.getStatus();
         serializeJson(jsonBuffer, JSON);
 
         request->send(200, PSTR("text/html"), JSON);

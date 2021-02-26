@@ -3,7 +3,7 @@
 
 #include "WiFiManager.h"
 #include "webServer.h"
-#include "updater.h"
+#include "OtaUpdateHelper.h"
 #include "fetch.h"
 #include "configManager.h"
 #include "timeSync.h"
@@ -40,6 +40,6 @@ void loop()
 {
     //software interrupts
     WiFiManager.loop();
-    updater.loop();    
+    otaUpdateHelper.loop();
     configManager.loop();
 }
