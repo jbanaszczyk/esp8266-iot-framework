@@ -63,7 +63,7 @@ function Root() {
             });
     }
 
-    const projectName = configData["projectName"] || Config.find(entry => entry.name === "projectName").value || "ESP8266";
+    const projectName = configData["projectName"] || "ESP8266";
     const projectVersion = configData["projectVersion"] || "";
     return <><GlobalStyle />
 
