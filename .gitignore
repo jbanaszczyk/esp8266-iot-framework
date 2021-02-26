@@ -4,6 +4,7 @@ __pycache__
 
 ### Clion + PlatformIO ###
 CMakeListsPrivate.txt
+CMakeLists.txt
 
 ### PlatformIO ###
 .pioenvs
