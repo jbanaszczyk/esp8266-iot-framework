@@ -1,6 +1,11 @@
 ### ESP8266 IoT Framework specific ###
 node_modules
 __pycache__
+src/generated/certificates.h
+src/generated/config.cpp
+src/generated/config.h
+src/generated/dash.h
+src/generated/html.h
 
 ### Clion + PlatformIO ###
 CMakeListsPrivate.txt
