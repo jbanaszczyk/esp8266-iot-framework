@@ -34,7 +34,7 @@ export const GlobalStyle = createGlobalStyle`
     }
 
     * {
-        font-family: Arial, sans-serif;
+        font-family: Segoe UI,Dejavu Sans,Helvetica,Arial,sans-serif;
     }
 
     a {
