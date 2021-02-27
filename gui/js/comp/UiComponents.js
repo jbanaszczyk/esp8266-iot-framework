@@ -396,6 +396,11 @@ export const Spinner = styled(Loader)`
     }
 `;
 
+export function unHidePass(elementName) {
+    var elt = document.getElementById(elementName);
+    elt.type = elt.type === "password" ? "text" : elt.type = "password";
+}
+
 export function Fetch(props) {
     return <span onClick={(e) => {
         e.stopPropagation();

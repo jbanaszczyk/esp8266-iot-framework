@@ -40,29 +40,40 @@ void webServer::bindAll()
     //update WiFi details
     server.on(PSTR("/api/wifi/set"), HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-        WiFiManager.setNewWifi(request->arg("ssid"), request->arg("pass"));
+	    WiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"));
     });
 
     //update WiFi details with static IP
     server.on(PSTR("/api/wifi/setStatic"), HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-        WiFiManager.setNewWifi(request->arg("ssid"), request->arg("pass"), request->arg("ip"), request->arg("sub"), request->arg("gw"), request->arg("dns"));
+	    WiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"), request->arg("localIP"), request->arg("subnetMask"), request->arg("gatewayIP"), request->arg("dnsIP"));
     });
 
-    //update WiFi details
-    server.on(PSTR("/api/wifi/forget"), HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-        WiFiManager.forget();
-    });
+	//forget WiFi details
+	server.on(PSTR("/api/wifi/forget"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
+		WiFiManager.prepareWiFi_forget();
+	});
 
-    //get WiFi details
-    server.on(PSTR("/api/wifi/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
-        String JSON;
-        StaticJsonDocument<200> jsonBuffer;
+	//set access point password
+	server.on(PSTR("/api/wifi/set_ap"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
+		WiFiManager.prepareWiFi_AP(request->arg("pass"));
+	});
 
-        jsonBuffer["captivePortal"] = WiFiManager.isCaptivePortal();
-        jsonBuffer["ssid"] = WiFiManager.SSID();
-        serializeJson(jsonBuffer, JSON);
+	//get WiFi details
+	server.on(PSTR("/api/wifi/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
+		String JSON;
+		StaticJsonDocument<200> jsonBuffer;
+
+		jsonBuffer["apMode"] = WiFiManager.isApMode();
+		jsonBuffer["ssid"] = WiFiManager.getSSID();
+		jsonBuffer["dhcp"] = WiFiManager.isDHCP();
+		jsonBuffer["localIP"] = WiFiManager.getLocalIP();
+		jsonBuffer["subnetMask"] = WiFiManager.getSubnetMask();
+		jsonBuffer["gatewayIP"] = WiFiManager.getGatewayIP();
+		jsonBuffer["dnsIP"] = WiFiManager.getDnsIP();
+		serializeJson(jsonBuffer, JSON);
 
         request->send(200, PSTR("text/html"), JSON);
     });

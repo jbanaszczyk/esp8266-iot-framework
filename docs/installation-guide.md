@@ -52,9 +52,9 @@ lib_deps = ESP8266 IoT Framework
 9. Run the `PlatformIO: Build` task. It should finish successfully.
 
 10. Run the `PlatformIO: Upload` task.
-    - Don't forget to plug your ESP8266 device into your computer first :)
+    - Don't prepareWiFi_forget to plug your ESP8266 device into your computer first :)
 
-11. Your ESP8266 is now running a Wifi captive portal with the SSID `Generic ESP8266 Firmware`
+11. Your ESP8266 is now running a Wifi captive portal with the getSSID `Generic ESP8266 Firmware`
     - Join that network, and then navigate to `192.168.4.1` in a web browser.
     - The captive portal page should load.
 

@@ -1,225 +1,260 @@
-//inspired by https://github.com/tzapu/WiFiManager but 
-//- with more flexibility to add your own web server setup
-//= state machine for changing wifi settings on the fly
+// inspired by https://github.com/tzapu/WiFiManager but
+// with more flexibility to add your own web server setup
+// state machine for changing wifi settings on the fly
 
 #include <ESP8266WiFi.h>
-
 #include "WiFiManager.h"
 #include "configManager.h"
 
-//create global object
+#include <user_interface.h>
+
+#if defined(DEBUG_IOT_WIFI_MANAGER) && defined(DEBUG_IOT_PORT)
+#define LOG_WIFI(...) DEBUG_IOT_PORT.printf_P( "[WIFI] " __VA_ARGS__ )
+#define LOG_WIFI_IP(format) LOG_WIFI(format, WiFi.localIP().toString().c_str())
+#else
+#define LOG_WIFI(...)
+#define LOG_WIFI_IP(format)
+
+#endif
+
+void WifiManager::begin(char const *apName) {
+	portalName = apName;
+
+	restoreFromEEPROM();
+
+	ETS_UART_INTR_DISABLE();
+	wifi_station_disconnect();
+	useStaticConfig();
+	WiFi.hostname(portalName);
+	WiFi.persistent(true);
+	WiFi.setAutoReconnect(true);
+	WiFi.setAutoConnect(true);
+	ETS_UART_INTR_ENABLE();
+	WiFi.mode(WIFI_STA);
+	WiFi.begin();
+	WiFi.waitForConnectResult(DEFAULT_WAIT_FOR_CONNECTION);
+
+	if (WiFi.isConnected()) {
+		LOG_WIFI_IP("Connected to WiFi, as %s\n");
+	} else {
+		LOG_WIFI("Not connected, status %d\n", WiFi.status());
+	}
+}
+
+void WifiManager::startApMode() {
+	if (!apMode) {
+		apMode = true;
+		LOG_WIFI("startApMode\n");
+
+		WiFi.mode(WIFI_STA);
+		bool canReconnect = !WiFi.SSID().isEmpty();
+		WiFi.mode(canReconnect ? WIFI_AP_STA : WIFI_AP);
+		WiFi.softAP(portalName, WiFi.softAPPSK());
+
+		/* Setup the DNS server redirecting all the domains to the apIP */
+		delete dnsServer;
+		dnsServer = new DNSServer();
+		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
+		dnsServer->start(53, "*", WiFi.softAPIP());
+
+		LOG_WIFI("Opened AP mode portal\nSSID: %s\nIP:   %s\n", WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
+	}
+}
+
+void WifiManager::stopApMode() {
+	if (apMode) {
+		apMode = false;
+		LOG_WIFI("stopApMode\n");
+		WiFi.mode(WIFI_STA);
+		delete dnsServer;
+		dnsServer = nullptr;
+	}
+}
+
+void WifiManager::forget() {
+	LOG_WIFI("forget WiFi.\n");
+
+	localIP = IPAddress();
+	useStaticConfig();
+	storeToEEPROM();
+
+	WiFi.persistent(false);
+	WiFi.disconnect();
+	WiFi.persistent(true);
+}
+
+void WifiManager::connectNewWifi() {
+	auto oldSSID = WiFi.SSID();
+	auto oldPSK = WiFi.psk();
+
+	auto oldIP = WiFi.localIP();
+	auto oldGatewayIP = WiFi.gatewayIP();
+	auto oldSubnetMask = WiFi.subnetMask();
+	auto oldDns = WiFi.dnsIP();
+
+	LOG_WIFI("connectNewWiFi\n");
+
+	if ((WiFi.getMode() & WIFI_STA) != 0 && !ssid.isEmpty() && oldSSID != ssid) {
+		LOG_WIFI("WiFi force disconnect\n");
+		WiFi.persistent(false);
+		WiFi.setAutoReconnect(false);
+		WiFi.disconnect();
+	}
+
+	useStaticConfig();
+	WiFi.hostname(portalName);
+	WiFi.mode(WIFI_OFF);
+	WiFi.mode(WIFI_STA);
+
+	ssid.isEmpty()
+	? WiFi.begin()
+	: WiFi.begin(ssid, pass);
+
+	if (WiFi.waitForConnectResult(DEFAULT_WAIT_FOR_CONNECTION) == WL_CONNECTED) {
+		storeToEEPROM();
+	} else {
+		LOG_WIFI("Error connecting to %s\n", ssid.c_str());
+		WiFi.config(oldIP, oldGatewayIP, oldSubnetMask, oldDns);
+		WiFi.begin(oldSSID, oldPSK);
+		if (WiFi.waitForConnectResult(DEFAULT_WAIT_FOR_CONNECTION) != WL_CONNECTED) {
+			LOG_WIFI("Old credentials failed\n");
+		}
+	}
+
+	WiFi.persistent(true);
+	WiFi.setAutoReconnect(true);
+
+	LOG_WIFI("connectNewWiFi done, status: %d\n", WiFi.status());
+}
+
+void WifiManager::changeApPsk() {
+	LOG_WIFI("changeApPsk\n");
+
+	auto oldMode = WiFi.getMode();
+	if (oldMode & WIFI_AP) {
+		WiFi.mode(static_cast<WiFiMode_t>(WIFI_AP | oldMode));
+	}
+	auto result = WiFi.softAP(portalName, pass);
+	WiFi.mode(oldMode);
+
+	LOG_WIFI("changeApPsk: %s\n", result ? "Ok" : "Failed");
+}
+
+void WifiManager::prepareWiFi_forget() {
+	reconnect = reconnect_t::wifiForget;
+}
+
+void WifiManager::prepareWiFi_STA(String newSSID, String newPass) {
+	ssid = std::move(newSSID);
+	pass = std::move(newPass);
+	localIP = IPAddress();
+	subnetMask = IPAddress();
+	gatewayIP = IPAddress();
+	dnsIP = IPAddress();
+	reconnect = reconnect_t::wifiConnect;
+}
+
+void WifiManager::prepareWiFi_STA(String newSSID, String newPass, const String &newLocalIP, const String &newSubnetMask, const String &newGatewayIP, const String &newDnsIP) {
+	ssid = std::move(newSSID);
+	pass = std::move(newPass);
+	localIP.fromString(newLocalIP);
+	subnetMask.fromString(newSubnetMask);
+	gatewayIP.fromString(newGatewayIP);
+	dnsIP.fromString(newDnsIP);
+	reconnect = reconnect_t::wifiConnect;
+}
+
+void WifiManager::prepareWiFi_AP(String newPass) {
+	pass = std::move(newPass);
+	reconnect = reconnect_t::changeApPSK;
+}
+
+bool WifiManager::useStaticConfig() {
+	if (!localIP.isSet()) {
+		subnetMask = IPAddress();
+		gatewayIP = IPAddress();
+		dnsIP = IPAddress();
+	}
+	return WiFi.config(localIP, gatewayIP, subnetMask, dnsIP);
+}
+
+bool WifiManager::isApMode() const {
+	return apMode;
+}
+
+String WifiManager::getSSID() {
+	return (WiFi.getMode() & WIFI_STA) != WIFI_STA ? "" : WiFi.SSID();
+}
+
+bool WifiManager::isDHCP() {
+	return (WiFi.getMode() & WIFI_STA) == WIFI_STA && wifi_station_dhcpc_status() == DHCP_STARTED;
+}
+
+String WifiManager::getLocalIP() {
+	return (WiFi.getMode() & WIFI_STA) != WIFI_STA ? "" : WiFi.localIP().toString();
+}
+
+String WifiManager::getSubnetMask() {
+	return (WiFi.getMode() & WIFI_STA) != WIFI_STA ? "" : WiFi.subnetMask().toString();
+}
+
+String WifiManager::getGatewayIP() {
+	return (WiFi.getMode() & WIFI_STA) != WIFI_STA ? "" : WiFi.gatewayIP().toString();
+}
+
+String WifiManager::getDnsIP() {
+	return (WiFi.getMode() & WIFI_STA) != WIFI_STA ? "" : WiFi.dnsIP().toString();
+}
+
+void WifiManager::loop() {
+	if (apMode && dnsServer != nullptr) {
+		dnsServer->processNextRequest();
+	}
+
+	switch (reconnect) {
+		case reconnect_t::wifiConnect: {
+			connectNewWifi();
+			reconnect = reconnect_t::doNothing;
+			break;
+		}
+
+		case reconnect_t::wifiForget: {
+			forget();
+			reconnect = reconnect_t::doNothing;
+			break;
+		}
+
+		case reconnect_t::changeApPSK: {
+			changeApPsk();
+			reconnect = reconnect_t::doNothing;
+			break;
+		}
+
+		default: {
+			break;
+		}
+	}
+
+	if (WiFi.isConnected() != !apMode) {
+		WiFi.isConnected()
+		? stopApMode()
+		: startApMode();
+	}
+}
+
+void WifiManager::restoreFromEEPROM() {
+	localIP = IPAddress(configManager.internal.localIP);
+	subnetMask = IPAddress(configManager.internal.subnetMask);
+	gatewayIP = IPAddress(configManager.internal.gatewayIP);
+	dnsIP = IPAddress(configManager.internal.dnsIP);
+}
+
+void WifiManager::storeToEEPROM() const {
+	configManager.internal.localIP = localIP.v4();
+	configManager.internal.subnetMask = subnetMask.v4();
+	configManager.internal.gatewayIP = gatewayIP.v4();
+	configManager.internal.dnsIP = dnsIP.v4();
+	configManager.save();
+}
+
 WifiManager WiFiManager;
-
-//function to call in setup
-void WifiManager::begin(char const *apName)
-{    
-    captivePortalName = apName;
-
-    WiFi.mode(WIFI_STA);
-
-    //set static IP if entered
-    ip = IPAddress(configManager.internal.ip);
-    gw = IPAddress(configManager.internal.gw);
-    sub = IPAddress(configManager.internal.sub);
-    dns = IPAddress(configManager.internal.dns);
-
-    if (ip.isSet() || gw.isSet() || sub.isSet() || dns.isSet())
-    {
-        Serial.println(PSTR("Using static IP"));
-        WiFi.config(ip, gw, sub, dns);
-    }
-
-    if (WiFi.SSID() != "")
-    {
-        //trying to fix connection in progress hanging
-        ETS_UART_INTR_DISABLE();
-        wifi_station_disconnect();
-        ETS_UART_INTR_ENABLE();
-        WiFi.begin();
-    }
-
-    if (WiFi.waitForConnectResult() == WL_CONNECTED)
-    {
-        //connected
-        Serial.println(PSTR("Connected to stored WiFi details"));
-        Serial.println(WiFi.localIP());
-    }
-    else
-    {
-        //captive portal
-        startCaptivePortal(captivePortalName);
-    }
-}
-
-//function to forget current WiFi details and start a captive portal
-void WifiManager::forget()
-{ 
-    WiFi.disconnect();
-    startCaptivePortal(captivePortalName);
-
-    //remove IP address from EEPROM
-    ip = IPAddress();
-    sub = IPAddress();
-    gw = IPAddress();
-    dns = IPAddress();
-
-    //make EEPROM empty
-    storeToEEPROM();
-
-    Serial.println(PSTR("Requested to forget WiFi. Started Captive portal."));
-}
-
-//function to request a connection to new WiFi credentials
-void WifiManager::setNewWifi(String newSSID, String newPass)
-{    
-    ssid = newSSID;
-    pass = newPass;
-    ip = IPAddress();
-    sub = IPAddress();
-    gw = IPAddress();
-    dns = IPAddress();
-
-    reconnect = true;
-}
-
-//function to request a connection to new WiFi credentials
-void WifiManager::setNewWifi(String newSSID, String newPass, String newIp, String newSub, String newGw, String newDns)
-{
-    ssid = newSSID;
-    pass = newPass;
-    ip.fromString(newIp);
-    sub.fromString(newSub);
-    gw.fromString(newGw);
-    dns.fromString(newDns);
-
-    reconnect = true;
-}
-
-//function to connect to new WiFi credentials
-void WifiManager::connectNewWifi(String newSSID, String newPass)
-{
-    delay(1000);
-
-    //set static IP or zeros if undefined    
-    WiFi.config(ip, gw, sub, dns);
-
-    //fix for auto connect racing issue
-    if (!(WiFi.status() == WL_CONNECTED && (WiFi.SSID() == newSSID)) || ip.v4() != configManager.internal.ip  || dns.v4() != configManager.internal.dns)
-    {          
-        //trying to fix connection in progress hanging
-        ETS_UART_INTR_DISABLE();
-        wifi_station_disconnect();
-        ETS_UART_INTR_ENABLE();
-
-        //store old data in case new network is wrong
-        String oldSSID = WiFi.SSID();
-        String oldPSK = WiFi.psk();
-
-        WiFi.begin(newSSID.c_str(), newPass.c_str(), 0, NULL, true);
-        delay(2000);
-
-        if (WiFi.waitForConnectResult() != WL_CONNECTED)
-        {
-            
-            Serial.println(PSTR("New connection unsuccessful"));
-            if (!inCaptivePortal)
-            {
-                WiFi.begin(oldSSID, oldPSK, 0, NULL, true);
-                if (WiFi.waitForConnectResult() != WL_CONNECTED)
-                {
-                    Serial.println(PSTR("Reconnection failed too"));
-                    startCaptivePortal(captivePortalName);
-                }
-                else 
-                {
-                    Serial.println(PSTR("Reconnection successful"));
-                    Serial.println(WiFi.localIP());
-                }
-            }
-        }
-        else
-        {
-            if (inCaptivePortal)
-            {
-                stopCaptivePortal();
-            }
-
-            Serial.println(PSTR("New connection successful"));
-            Serial.println(WiFi.localIP());
-
-            //store IP address in EEProm
-            storeToEEPROM();
-
-        }
-    }
-}
-
-//function to start the captive portal
-void WifiManager::startCaptivePortal(char const *apName)
-{
-    WiFi.persistent(false);
-    // disconnect sta, start ap
-    WiFi.disconnect(); //  this alone is not enough to stop the autoconnecter
-    WiFi.mode(WIFI_AP);
-    WiFi.persistent(true);
-
-    WiFi.softAP(apName);
-
-    dnsServer = new DNSServer();
-
-    /* Setup the DNS server redirecting all the domains to the apIP */
-    dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
-    dnsServer->start(53, "*", WiFi.softAPIP());
-
-    Serial.println(PSTR("Opened a captive portal"));
-    Serial.println(PSTR("192.168.4.1"));
-    inCaptivePortal = true;
-}
-
-//function to stop the captive portal
-void WifiManager::stopCaptivePortal()
-{    
-    WiFi.mode(WIFI_STA);
-    delete dnsServer;
-
-    inCaptivePortal = false;    
-}
-
-//return captive portal state
-bool WifiManager::isCaptivePortal()
-{
-    return inCaptivePortal;
-}
-
-//return current SSID
-String WifiManager::SSID()
-{    
-    return WiFi.SSID();
-}
-
-//captive portal loop
-void WifiManager::loop()
-{
-    if (inCaptivePortal)
-    {
-        //captive portal loop
-        dnsServer->processNextRequest();
-    }
-
-    if (reconnect)
-    {
-        connectNewWifi(ssid, pass);
-        reconnect = false;
-    }
-    
-}
-
-//update IP address in EEPROM
-void WifiManager::storeToEEPROM()
-{
-    configManager.internal.ip = ip.v4();
-    configManager.internal.gw = gw.v4();
-    configManager.internal.sub = sub.v4();
-    configManager.internal.dns = dns.v4();
-    configManager.save();
-}

@@ -10,10 +10,10 @@
 
 struct internalData
 {
-    uint32_t ip;
-    uint32_t gw;
-    uint32_t sub;
-    uint32_t dns;
+    uint32_t localIP;
+	uint32_t subnetMask;
+	uint32_t gatewayIP;
+    uint32_t dnsIP;
 };
 
 class config

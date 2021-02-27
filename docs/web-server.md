@@ -66,15 +66,19 @@ A GET request to this location with the arguments `ssid` and `pass` tries to con
 
 #### /api/wifi/setStatic
 
-A GET request to this location with the arguments `ssid`, `pass`, `ip`, `sub` and `gw` tries to connect to these new WiFi credentials with a static IP address.
+A GET request to this location with the arguments `ssid`, `pass`, `localIP`, `subnetMask` and `gatewayIP` tries to connect to these new WiFi credentials with a static IP address.
 
-#### /api/wifi/forget
+#### /api/wifi/prepareWiFi_forget
 
-A request to this URL will forget the stored WiFi details and start a captive portal.
+A request to this URL will forget the stored WiFi details and start a standalone portal.
 
 #### /api/wifi/get
 
-A request to this URL will return a JSON object containing a flag if the ESP8266 is currently acting as a hotpot, and if not, the current SSID name.
+A request to this URL will return a JSON object containing a flag if the ESP8266 is currently acting as a hotpot, and if not, the current SSID name, actual IP, subnet mask, gateway IP, DNS IP. internal DHCP activity.
+
+#### /api/wifi/set_ap
+
+A request to this URL will set access point password.
 
 #### /api/files/get
 
