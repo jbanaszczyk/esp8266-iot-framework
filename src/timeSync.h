@@ -1,24 +1,20 @@
-#ifndef TIMESYNC_H
-#define TIMESYNC_H
+#pragma once
 
 #include <Arduino.h>
 
-class NTPSync
-{
+class NTPSync {
 
 public:
-    void begin();
-    void begin(const char* tz);
-    void begin(const char* tz, const char* server1, const char* server2 = nullptr, const char* server3 = nullptr);
-    bool isSynced();
-    int8_t waitForSyncResult(unsigned long timeoutLength = 10000);
+	void begin();
+	void begin(const char *tz);
+	void begin(const char *tz, const char *server1, const char *server2 = nullptr, const char *server3 = nullptr);
 
-private : 
-    bool synced = false;
+	bool isSynced() const;
+	bool waitForSyncResult(unsigned long timeoutLength = 10000) const;
 
-    void setTime(const char* tz, const char* server1, const char* server2, const char* server3);
+private :
+	bool synced = false;
+	void setTime(const char *tz, const char *server1, const char *server2, const char *server3);
 };
 
 extern NTPSync timeSync;
-
-#endif
