@@ -74,9 +74,9 @@ function Root() {
 
                 <Hamburger onClick={() => setMenu(!menu)} />
                 <Menu className={menu ? "" : "menuHidden"}>
-                    <li><NavLink onClick={() => setMenu(false)} exact to="/">{loc.titleWifi}</NavLink></li>
-                    <li><NavLink onClick={() => setMenu(false)} exact to="/dashboard">{loc.titleDash}</NavLink></li>
+                    <li><NavLink onClick={() => setMenu(false)} exact to="/">{loc.titleDash}</NavLink></li>
                     <li><NavLink onClick={() => setMenu(false)} exact to="/config">{loc.titleConf}</NavLink></li>
+                    <li><NavLink onClick={() => setMenu(false)} exact to="/wifi">{loc.titleWifi}</NavLink></li>
                     <li><NavLink onClick={() => setMenu(false)} exact to="/files">{loc.titleFile}</NavLink></li>
                     <li><NavLink onClick={() => setMenu(false)} exact to="/firmware">{loc.titleFw}</NavLink></li>
                 </Menu>
@@ -94,7 +94,7 @@ function Root() {
                             binSize={binSize}
                             requestUpdate={fetchData} />
                     </Route>
-                    <Route exact path="/dashboard">
+                    <Route exact path="/">
                         <DashboardPage API={url} 
                             socket={socket}
                             requestData={() => {return displayData;}} />
@@ -102,7 +102,7 @@ function Root() {
                     <Route exact path="/firmware">
                         <FirmwarePage API={url} />
                     </Route>
-                    <Route path="/">
+                    <Route path="/wifi">
                         <WifiPage API={url} />
                     </Route>
                 </Switch>
