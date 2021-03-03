@@ -6,6 +6,7 @@ src/generated/config.cpp
 src/generated/config.h
 src/generated/dash.h
 src/generated/html.h
+gui/js/dashboard.json.json
 
 ### Clion + PlatformIO ###
 CMakeListsPrivate.txt
