@@ -32,7 +32,7 @@ void WifiManager::begin(char const *apName) {
 	ETS_UART_INTR_ENABLE();
 	WiFi.mode(WIFI_STA);
 	WiFi.begin();
-	WiFi.waitForConnectResult(DEFAULT_WAIT_FOR_CONNECTION);
+	WiFi.waitForConnectResult();
 
 	if (WiFi.isConnected()) {
 		LOG_WIFI_IP("Connected to WiFi, as %s\n");
@@ -110,13 +110,13 @@ void WifiManager::connectNewWifi() {
 	? WiFi.begin()
 	: WiFi.begin(ssid, pass);
 
-	if (WiFi.waitForConnectResult(DEFAULT_WAIT_FOR_CONNECTION) == WL_CONNECTED) {
+	if (WiFi.waitForConnectResult() == WL_CONNECTED) {
 		storeToEEPROM();
 	} else {
 		LOG_WIFI("Error connecting to %s\n", ssid.c_str());
 		WiFi.config(oldIP, oldGatewayIP, oldSubnetMask, oldDns);
 		WiFi.begin(oldSSID, oldPSK);
-		if (WiFi.waitForConnectResult(DEFAULT_WAIT_FOR_CONNECTION) != WL_CONNECTED) {
+		if (WiFi.waitForConnectResult() != WL_CONNECTED) {
 			LOG_WIFI("Old credentials failed\n");
 		}
 	}
@@ -134,7 +134,7 @@ void WifiManager::changeApPsk() {
 	if (oldMode & WIFI_AP) {
 		WiFi.mode(static_cast<WiFiMode_t>(WIFI_AP | oldMode));
 	}
-	auto result = WiFi.softAP(portalName, pass);
+	auto result = WiFi.softAP(portalName, ApPass);
 	WiFi.mode(oldMode);
 
 	LOG_WIFI("changeApPsk: %s\n", result ? "Ok" : "Failed");
@@ -165,7 +165,7 @@ void WifiManager::prepareWiFi_STA(String newSSID, String newPass, const String &
 }
 
 void WifiManager::prepareWiFi_AP(String newPass) {
-	pass = std::move(newPass);
+	ApPass = std::move(newPass);
 	reconnect = reconnect_t::changeApPSK;
 }
 

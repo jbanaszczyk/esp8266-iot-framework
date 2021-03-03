@@ -7,7 +7,6 @@
 class WifiManager {
 
 private:
-	static const unsigned long DEFAULT_WAIT_FOR_CONNECTION = 15UL * 1000UL;
 	DNSServer *dnsServer = nullptr;
 
 	enum class reconnect_t {
@@ -16,6 +15,7 @@ private:
 	volatile reconnect_t reconnect = reconnect_t::doNothing;
 	String ssid;
 	String pass;
+	String ApPass;
 	IPAddress localIP;
 	IPAddress gatewayIP;
 	IPAddress subnetMask;
