@@ -74,7 +74,7 @@ void WifiManager::stopApMode() {
 void WifiManager::forget() {
 	LOG_WIFI("forget WiFi.\n");
 
-	localIP = IPAddress();
+	storageNewWfi.localIP = IPAddress();
 	useStaticConfig();
 	storeToEEPROM();
 
@@ -94,7 +94,7 @@ void WifiManager::connectNewWifi() {
 
 	LOG_WIFI("connectNewWiFi\n");
 
-	if ((WiFi.getMode() & WIFI_STA) != 0 && !ssid.isEmpty() && oldSSID != ssid) {
+	if ((WiFi.getMode() & WIFI_STA) != 0 && !storageNewWfi.ssid.isEmpty() && oldSSID != storageNewWfi.ssid) {
 		LOG_WIFI("WiFi force disconnect\n");
 		WiFi.persistent(false);
 		WiFi.setAutoReconnect(false);
@@ -106,9 +106,9 @@ void WifiManager::connectNewWifi() {
 	WiFi.mode(WIFI_OFF);
 	WiFi.mode(WIFI_STA);
 
-	ssid.isEmpty()
+	storageNewWfi.ssid.isEmpty()
 	? WiFi.begin()
-	: WiFi.begin(ssid, pass);
+	: WiFi.begin(storageNewWfi.ssid, storageNewWfi.pass);
 
 	if (WiFi.waitForConnectResult() == WL_CONNECTED) {
 		storeToEEPROM();
@@ -134,7 +134,7 @@ void WifiManager::changeApPsk() {
 	if (oldMode & WIFI_AP) {
 		WiFi.mode(static_cast<WiFiMode_t>(WIFI_AP | oldMode));
 	}
-	auto result = WiFi.softAP(portalName, ApPass);
+	auto result = WiFi.softAP(portalName, storageApPassword.ApPass);
 	WiFi.mode(oldMode);
 
 	LOG_WIFI("changeApPsk: %s\n", result ? "Ok" : "Failed");
@@ -145,37 +145,37 @@ void WifiManager::prepareWiFi_forget() {
 }
 
 void WifiManager::prepareWiFi_STA(String newSSID, String newPass) {
-	ssid = std::move(newSSID);
-	pass = std::move(newPass);
-	localIP = IPAddress();
-	subnetMask = IPAddress();
-	gatewayIP = IPAddress();
-	dnsIP = IPAddress();
+	storageNewWfi.ssid = std::move(newSSID);
+	storageNewWfi.pass = std::move(newPass);
+	storageNewWfi.localIP = IPAddress();
+	storageNewWfi.subnetMask = IPAddress();
+	storageNewWfi.gatewayIP = IPAddress();
+	storageNewWfi.dnsIP = IPAddress();
 	reconnect = reconnect_t::wifiConnect;
 }
 
 void WifiManager::prepareWiFi_STA(String newSSID, String newPass, const String &newLocalIP, const String &newSubnetMask, const String &newGatewayIP, const String &newDnsIP) {
-	ssid = std::move(newSSID);
-	pass = std::move(newPass);
-	localIP.fromString(newLocalIP);
-	subnetMask.fromString(newSubnetMask);
-	gatewayIP.fromString(newGatewayIP);
-	dnsIP.fromString(newDnsIP);
+	storageNewWfi.ssid = std::move(newSSID);
+	storageNewWfi.pass = std::move(newPass);
+	storageNewWfi.localIP.fromString(newLocalIP);
+	storageNewWfi.subnetMask.fromString(newSubnetMask);
+	storageNewWfi.gatewayIP.fromString(newGatewayIP);
+	storageNewWfi.dnsIP.fromString(newDnsIP);
 	reconnect = reconnect_t::wifiConnect;
 }
 
 void WifiManager::prepareWiFi_AP(String newPass) {
-	ApPass = std::move(newPass);
+	storageApPassword.ApPass = std::move(newPass);
 	reconnect = reconnect_t::changeApPSK;
 }
 
 bool WifiManager::useStaticConfig() {
-	if (!localIP.isSet()) {
-		subnetMask = IPAddress();
-		gatewayIP = IPAddress();
-		dnsIP = IPAddress();
+	if (!storageNewWfi.localIP.isSet()) {
+		storageNewWfi.subnetMask = IPAddress();
+		storageNewWfi.gatewayIP = IPAddress();
+		storageNewWfi.dnsIP = IPAddress();
 	}
-	return WiFi.config(localIP, gatewayIP, subnetMask, dnsIP);
+	return WiFi.config(storageNewWfi.localIP, storageNewWfi.gatewayIP, storageNewWfi.subnetMask, storageNewWfi.dnsIP);
 }
 
 bool WifiManager::isApMode() const {
@@ -243,17 +243,17 @@ void WifiManager::loop() {
 }
 
 void WifiManager::restoreFromEEPROM() {
-	localIP = IPAddress(configManager.internal.localIP);
-	subnetMask = IPAddress(configManager.internal.subnetMask);
-	gatewayIP = IPAddress(configManager.internal.gatewayIP);
-	dnsIP = IPAddress(configManager.internal.dnsIP);
+	storageNewWfi.localIP = IPAddress(configManager.internal.localIP);
+	storageNewWfi.subnetMask = IPAddress(configManager.internal.subnetMask);
+	storageNewWfi.gatewayIP = IPAddress(configManager.internal.gatewayIP);
+	storageNewWfi.dnsIP = IPAddress(configManager.internal.dnsIP);
 }
 
 void WifiManager::storeToEEPROM() const {
-	configManager.internal.localIP = localIP.v4();
-	configManager.internal.subnetMask = subnetMask.v4();
-	configManager.internal.gatewayIP = gatewayIP.v4();
-	configManager.internal.dnsIP = dnsIP.v4();
+	configManager.internal.localIP = storageNewWfi.localIP.v4();
+	configManager.internal.subnetMask = storageNewWfi.subnetMask.v4();
+	configManager.internal.gatewayIP = storageNewWfi.gatewayIP.v4();
+	configManager.internal.dnsIP = storageNewWfi.dnsIP.v4();
 	configManager.save();
 }
 

@@ -12,14 +12,24 @@ private:
 	enum class reconnect_t {
 		doNothing, wifiConnect, wifiForget, changeApPSK
 	};
+
+	struct StorageNewWfi {
+		String ssid;
+		String pass;
+		IPAddress localIP;
+		IPAddress gatewayIP;
+		IPAddress subnetMask;
+		IPAddress dnsIP;
+	};
+
+	struct StorageApPassword {
+		String ApPass;
+	};
+
+	StorageNewWfi storageNewWfi;
+	StorageApPassword storageApPassword;
+
 	volatile reconnect_t reconnect = reconnect_t::doNothing;
-	String ssid;
-	String pass;
-	String ApPass;
-	IPAddress localIP;
-	IPAddress gatewayIP;
-	IPAddress subnetMask;
-	IPAddress dnsIP;
 
 	bool apMode = false;
 	char const *portalName;
