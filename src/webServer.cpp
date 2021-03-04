@@ -40,25 +40,25 @@ void webServer::bindAll()
     //update WiFi details
     server.on(PSTR("/api/wifi/set"), HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-	    WiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"));
+	    wiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"));
     });
 
     //update WiFi details with static IP
     server.on(PSTR("/api/wifi/setStatic"), HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-	    WiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"), request->arg("localIP"), request->arg("subnetMask"), request->arg("gatewayIP"), request->arg("dnsIP"));
+	    wiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"), request->arg("localIP"), request->arg("subnetMask"), request->arg("gatewayIP"), request->arg("dnsIP"));
     });
 
 	//forget WiFi details
 	server.on(PSTR("/api/wifi/forget"), HTTP_POST, [](AsyncWebServerRequest *request) {
 		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-		WiFiManager.prepareWiFi_forget();
+		wiFiManager.prepareWiFi_forget();
 	});
 
 	//set access point password
 	server.on(PSTR("/api/wifi/set_ap"), HTTP_POST, [](AsyncWebServerRequest *request) {
 		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-		WiFiManager.prepareWiFi_AP(request->arg("pass"));
+		wiFiManager.prepareWiFi_AP(request->arg("pass"));
 	});
 
 	//get WiFi details
@@ -66,13 +66,13 @@ void webServer::bindAll()
 		String JSON;
 		StaticJsonDocument<200> jsonBuffer;
 
-		jsonBuffer["apMode"] = WiFiManager.isApMode();
-		jsonBuffer["ssid"] = WiFiManager.getSSID();
-		jsonBuffer["dhcp"] = WiFiManager.isDHCP();
-		jsonBuffer["localIP"] = WiFiManager.getLocalIP();
-		jsonBuffer["subnetMask"] = WiFiManager.getSubnetMask();
-		jsonBuffer["gatewayIP"] = WiFiManager.getGatewayIP();
-		jsonBuffer["dnsIP"] = WiFiManager.getDnsIP();
+		jsonBuffer["apMode"] = wiFiManager.isApMode();
+		jsonBuffer["ssid"] = wiFiManager.getSSID();
+		jsonBuffer["dhcp"] = wiFiManager.isDHCP();
+		jsonBuffer["localIP"] = wiFiManager.getLocalIP();
+		jsonBuffer["subnetMask"] = wiFiManager.getSubnetMask();
+		jsonBuffer["gatewayIP"] = wiFiManager.getGatewayIP();
+		jsonBuffer["dnsIP"] = wiFiManager.getDnsIP();
 		serializeJson(jsonBuffer, JSON);
 
         request->send(200, PSTR("text/html"), JSON);
@@ -92,8 +92,8 @@ void webServer::bindAll()
         //get used and total data
         FSInfo fs_info;
         LittleFS.info(fs_info);
-        jsonBuffer["used"] = String(fs_info.usedBytes);
-        jsonBuffer["max"] = String(fs_info.totalBytes);
+	    jsonBuffer["used"] = String(static_cast<uint32_t>(fs_info.usedBytes));
+	    jsonBuffer["max"] = String(static_cast<uint32_t>(fs_info.totalBytes));
 
         serializeJson(jsonBuffer, JSON);
 
@@ -126,7 +126,8 @@ void webServer::bindAll()
     //send binary configuration data
     server.on(PSTR("/api/config/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncResponseStream *response = request->beginResponseStream(PSTR("application/octet-stream"));
-        response->write(reinterpret_cast<char*>(&configManager.data), sizeof(configManager.data));
+        auto configData = getConfigManager()->getEepromData().getStoredData().getConfigData();
+	    response->write(reinterpret_cast<const char*>(&configData), sizeof(configData));
         request->send(response);
     });
 
@@ -136,23 +137,15 @@ void webServer::bindAll()
         [this](AsyncWebServerRequest *request) {},
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
         [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-            
-            static uint8_t buffer[sizeof(configManager.data)];
-            static uint32_t bufferIndex = 0;
-
-            for (size_t i = 0; i < len; i++)
-            {
-                buffer[bufferIndex] = data[i];
-                bufferIndex++;
-            }
-
-            if (index + len == total)
-            {
-                bufferIndex = 0;
-                configManager.saveRaw(buffer);
-                request->send(200, PSTR("text/html"), "");
-            }
-
+        	if ( index != 0 || total != len) {
+		        request->send(500, PSTR("text/html"), "[webServer] not supported handleBody");
+	        } else if ( len != sizeof (ConfigData)) {
+		        request->send(500, PSTR("text/html"), "[webServer] ConfigData size mismatch");
+        	} else {
+		        ConfigData *config = reinterpret_cast<ConfigData *>(data);
+		        getConfigManager()->saveConfig(config);
+		        request->send(200, PSTR("text/html"), "");
+        	}
         });
 
     //receive binary configuration data from body

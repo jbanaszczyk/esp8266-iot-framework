@@ -16,16 +16,13 @@ def preBuildConfigFun():
 
     # binascii.crc32(mes.encode('utf8'))
     #headers
-    h.write("#ifndef CONFIG_H\n")
-    h.write("#define CONFIG_H\n\n")
-    h.write("struct configData\n{\n")
+    h.write("#pragma once\n\n")
+    h.write("struct ConfigData {\n")
 
     cpp.write("#include <Arduino.h>\n")
     cpp.write("#include \"config.h\"\n\n")
 
-    cpp.write("uint32_t configVersion = " + str(binascii.crc32(json.dumps(data).encode())) + "; //generated identifier to compare config with EEPROM\n\n")
-
-    cpp.write("const configData defaults PROGMEM =\n{\n")
+    cpp.write("const ConfigData configDefaults PROGMEM = {\n")
 
     #loop through variables
     first = True
@@ -47,11 +44,11 @@ def preBuildConfigFun():
             h.write("\t" + item['type'] + " " + item['name'] +";\n")
 
     #footers
-    h.write("};\n\nextern uint32_t configVersion;\n")
-    h.write("extern const configData defaults;\n\n")
-    h.write("#endif")
 
-    cpp.write("\n};")
+    h.write("};\n\nstatic constexpr uint32_t configVersion = " + str(binascii.crc32(json.dumps(data).encode())) + "; //generated identifier to compare config with EEPROM\n\n")
+    h.write("extern const ConfigData configDefaults;\n")
+
+    cpp.write("\n};\n")
 
     h.close()
     cpp.close()

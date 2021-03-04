@@ -3,107 +3,68 @@
 
 #include "configManager.h"
 
-//class functions
-bool config::begin(int numBytes)
-{
-    EEPROM.begin(numBytes);
+ConfigManager::ConfigManager() {
+	EEPROM.begin(sizeof(EepromData));
+	EEPROM.get(0, eepromData);
 
-    uint32_t storedVersion;
-    uint8_t checksumData = 0;
-    uint8_t checksumInternal = 0;
-
-    EEPROM.get(0, internal);
-    EEPROM.get(SIZE_INTERNAL, checksumInternal);
-    EEPROM.get(SIZE_INTERNAL + 1, storedVersion);
-    EEPROM.get(SIZE_INTERNAL + 5, data);
-    EEPROM.get(SIZE_INTERNAL + 5 + sizeof(data), checksumData);        
-
-    bool returnValue = true;
-
-    //reset configuration data if checksum mismatch
-    if (checksumData != checksum(reinterpret_cast<uint8_t*>(&data), sizeof(data)) || storedVersion != configVersion)
-    {
-        Serial.println(PSTR("Config data checksum mismatch"));
-        reset();
-        returnValue = false;
-    }
-
-    //reset internal data if checksum mismatch
-    if (checksumInternal != checksum(reinterpret_cast<uint8_t*>(&internal), sizeof(internal)))
-    {
-        Serial.println(PSTR("Internal data checksum mismatch"));
-        internal = internalData();
-        requestSave = true;
-        returnValue = false;
-    }
-
-    return returnValue;        
+	if (eepromData.getControlData().getVersion() != configVersion || checksum(eepromData.getStoredData()) != eepromData.getControlData().getChecksum()) {
+		Serial.println(PSTR("EEPROM data invalid"));
+		Serial.printf("Version %d %d\n", configVersion, eepromData.getControlData().getVersion());
+		Serial.printf("Checksum %d %d\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
+		reset();
+	}
 }
 
-void config::reset()
-{
-    memcpy_P(&data, &defaults, sizeof(data));
-    requestSave = true;
+void ConfigManager::reset() {
+	auto internal = eepromData.getMutableStoredData()->getMutableInternalData();
+	internal->setDnsIP(IPAddress());
+	internal->setSubnetMask(IPAddress());
+	internal->setGatewayIP(IPAddress());
+	internal->setDnsIP(IPAddress());
+	static_assert(sizeof(ConfigData) == sizeof(configDefaults), "Wrong configDefaults");
+	memcpy_P(eepromData.getMutableStoredData()->getMutableConfigData(), &configDefaults, sizeof(ConfigData));
+	setDirty();
 }
 
-void config::saveRaw(uint8_t bytes[])
-{
-    memcpy(&data,bytes,sizeof(data));
-    requestSave = true;
+void ConfigManager::saveConfig(ConfigData *configData) {
+	memcpy_P(eepromData.getMutableStoredData()->getMutableConfigData(), configData, sizeof(ConfigData));
+	setDirty();
 }
 
-void config::saveExternal(configData *extData)
-{
-    memcpy(&data, extData, sizeof(data));
-    requestSave = true;
+void ConfigManager::saveEeprom() {
+	clrDirty();
+
+	auto control = getMutableEepromData()->getMutableControlData();
+	control->setVersion(configVersion);
+	control->setChecksum(checksum(eepromData.getStoredData()));
+
+	EEPROM.put(0, eepromData);
+	EEPROM.commit();
+
+	if (configSaveCallback != nullptr) {
+		configSaveCallback();
+	}
 }
 
-void config::save()
-{
-    EEPROM.put(0, internal);
-
-    //save checksum for internal data
-    EEPROM.put(SIZE_INTERNAL, checksum(reinterpret_cast<uint8_t*>(&internal), sizeof(internal)));
-
-    EEPROM.put(SIZE_INTERNAL + 1, configVersion);
-    EEPROM.put(SIZE_INTERNAL + 5, data);
-
-    //save checksum for configuration data
-    EEPROM.put(SIZE_INTERNAL + 5 + sizeof(data), checksum(reinterpret_cast<uint8_t*>(&data), sizeof(data)));
-    
-    EEPROM.commit();
-
-    if ( _configsavecallback != NULL) {
-        _configsavecallback();
-    }
+void ConfigManager::loop() {
+	if (isDirty()) {
+		saveEeprom();
+	}
 }
 
-void config::setConfigSaveCallback( std::function<void()> func ) {
-  _configsavecallback = func;
+configManagerChecksum ConfigManager::checksumHelper(uint8_t *byteArray, unsigned long length, configManagerChecksum result) {
+	for (decltype(length) counter = 0; counter < length; counter++) {
+		result = hash(result, *(byteArray++));
+	}
+	return result;
 }
 
-void config::loop()
-{
-    if (requestSave)
-    {
-        requestSave = false;
-        save();
-    }
+configManagerChecksum ConfigManager::hash(configManagerChecksum value, uint8_t c) {
+	value ^= c;
+	return value << 1 | value >> 7;
 }
 
-uint8_t config::checksum(uint8_t *byteArray, unsigned long length)
-{
-    uint8_t value = 0;
-    unsigned long counter;
-
-    for (counter=0; counter<length; counter++)
-    {
-        value += *byteArray;
-        byteArray++;
-    }
-
-    return (uint8_t)(256-value);
-
+ConfigManager *getConfigManager() {
+	static ConfigManager configManager = ConfigManager();
+	return &configManager;
 }
-
-config configManager;

@@ -32,6 +32,8 @@ void WifiManager::begin(char const *apName) {
 	ETS_UART_INTR_ENABLE();
 	WiFi.mode(WIFI_STA);
 	WiFi.begin();
+
+
 	WiFi.waitForConnectResult();
 
 	if (WiFi.isConnected()) {
@@ -243,18 +245,19 @@ void WifiManager::loop() {
 }
 
 void WifiManager::restoreFromEEPROM() {
-	storageNewWfi.localIP = IPAddress(configManager.internal.localIP);
-	storageNewWfi.subnetMask = IPAddress(configManager.internal.subnetMask);
-	storageNewWfi.gatewayIP = IPAddress(configManager.internal.gatewayIP);
-	storageNewWfi.dnsIP = IPAddress(configManager.internal.dnsIP);
+	auto internalData = getConfigManager()->getEepromData().getStoredData().getInternalData();
+	storageNewWfi.localIP = internalData.getLocalIP();
+	storageNewWfi.subnetMask = internalData.getSubnetMask();
+	storageNewWfi.gatewayIP = internalData.getGatewayIP();
+	storageNewWfi.dnsIP = internalData.getDnsIP();
 }
 
 void WifiManager::storeToEEPROM() const {
-	configManager.internal.localIP = storageNewWfi.localIP.v4();
-	configManager.internal.subnetMask = storageNewWfi.subnetMask.v4();
-	configManager.internal.gatewayIP = storageNewWfi.gatewayIP.v4();
-	configManager.internal.dnsIP = storageNewWfi.dnsIP.v4();
-	configManager.save();
+	auto internalData = getConfigManager()->getMutableEepromData()->getMutableStoredData()->getMutableInternalData();
+	internalData->setLocalIP(storageNewWfi.localIP);
+	internalData->setSubnetMask(storageNewWfi.subnetMask);
+	internalData->setGatewayIP(storageNewWfi.gatewayIP);
+	internalData->setDnsIP(storageNewWfi.dnsIP);
 }
 
-WifiManager WiFiManager;
+WifiManager wiFiManager;
