@@ -143,7 +143,7 @@ void webServer::bindAll()
 		        request->send(500, PSTR("text/html"), "[webServer] ConfigData size mismatch");
         	} else {
 		        ConfigData *config = reinterpret_cast<ConfigData *>(data);
-		        getConfigManager()->saveConfig(config);
+		        getConfigManager()->saveConfigData(config);
 		        request->send(200, PSTR("text/html"), "");
         	}
         });

@@ -253,11 +253,11 @@ void WifiManager::restoreFromEEPROM() {
 }
 
 void WifiManager::storeToEEPROM() const {
-	auto internalData = getConfigManager()->getMutableEepromData()->getMutableStoredData()->getMutableInternalData();
-	internalData->setLocalIP(storageNewWfi.localIP);
-	internalData->setSubnetMask(storageNewWfi.subnetMask);
-	internalData->setGatewayIP(storageNewWfi.gatewayIP);
-	internalData->setDnsIP(storageNewWfi.dnsIP);
+	ConfigManager::InternalData internalData(storageNewWfi.localIP,
+	                                         storageNewWfi.subnetMask,
+	                                         storageNewWfi.gatewayIP,
+	                                         storageNewWfi.dnsIP);
+	getConfigManager()->saveInternalData(&internalData);
 }
 
 WifiManager wiFiManager;

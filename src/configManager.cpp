@@ -11,28 +11,25 @@ ConfigManager::ConfigManager() {
 		Serial.println(PSTR("EEPROM data invalid"));
 		Serial.printf("Version %d %d\n", configVersion, eepromData.getControlData().getVersion());
 		Serial.printf("Checksum %d %d\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
-		reset();
+		InternalData internalData{};
+		saveInternalData(&internalData);
+		saveConfigData(&configDefaults);
 	}
 }
 
-void ConfigManager::reset() {
-	auto internal = eepromData.getMutableStoredData()->getMutableInternalData();
-	internal->setDnsIP(IPAddress());
-	internal->setSubnetMask(IPAddress());
-	internal->setGatewayIP(IPAddress());
-	internal->setDnsIP(IPAddress());
-	static_assert(sizeof(ConfigData) == sizeof(configDefaults), "Wrong configDefaults");
-	memcpy_P(eepromData.getMutableStoredData()->getMutableConfigData(), &configDefaults, sizeof(ConfigData));
+void ConfigManager::saveInternalData(const InternalData *internalData) {
+	memcpy_P(eepromData.getMutableStoredData()->getMutableConfigData(), internalData, sizeof(InternalData));
 	setDirty();
 }
 
-void ConfigManager::saveConfig(ConfigData *configData) {
+void ConfigManager::saveConfigData(const ConfigData *configData) {
 	memcpy_P(eepromData.getMutableStoredData()->getMutableConfigData(), configData, sizeof(ConfigData));
 	setDirty();
 }
 
-void ConfigManager::saveEeprom() {
-	clrDirty();
+void ConfigManager::writeEeprom() {
+	Serial.printf("[EEPROM] Write %zu bytes\n", sizeof(eepromData));
+	dirty = false;
 
 	auto control = getMutableEepromData()->getMutableControlData();
 	control->setVersion(configVersion);
@@ -46,20 +43,39 @@ void ConfigManager::saveEeprom() {
 	}
 }
 
-void ConfigManager::loop() {
-	if (isDirty()) {
-		saveEeprom();
+void ConfigManager::addScheduler(Scheduler *scheduler) {
+	if (scheduler != nullptr) {
+		loopTask = new Task(
+				0,
+				1,
+				[this]() -> void {
+					writeEeprom();
+				},
+				scheduler,
+				false);
+	}
+	if (dirty) {
+		loopTask->enable();
 	}
 }
 
-configManagerChecksum ConfigManager::checksumHelper(uint8_t *byteArray, unsigned long length, configManagerChecksum result) {
+void ConfigManager::setDirty() {
+	dirty = true;
+	if (loopTask != nullptr) {
+		loopTask->setIterations(1);
+		loopTask->enable();
+	}
+}
+
+configManagerChecksum ConfigManager::checksumHelper(configManagerChecksum *byteArray, unsigned long length, configManagerChecksum result) {
 	for (decltype(length) counter = 0; counter < length; counter++) {
 		result = hash(result, *(byteArray++));
+		byteArray ++ ;
 	}
 	return result;
 }
 
-configManagerChecksum ConfigManager::hash(configManagerChecksum value, uint8_t c) {
+configManagerChecksum ConfigManager::hash(configManagerChecksum value, configManagerChecksum c) {
 	value ^= c;
 	return value << 1 | value >> 7;
 }

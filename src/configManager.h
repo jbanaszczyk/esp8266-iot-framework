@@ -2,31 +2,46 @@
 
 #include "IPAddress.h"
 #include "generated/config.h"
+#include <TaskSchedulerDeclarations.h>
 
+// FIXME think about uint32_t
 typedef uint8_t configManagerChecksum;
-
-class ConfigManager;
-
-ConfigManager *getConfigManager();
 
 class ConfigManager {
 
 public:
 	class InternalData {
-		uint32_t localIP;
-		uint32_t subnetMask;
-		uint32_t gatewayIP;
-		uint32_t dnsIP;
+	public:
+		InternalData(IPAddress localIp, IPAddress subnetMask, IPAddress gatewayIp, IPAddress dnsIp) :
+				localIP(localIp.v4()),
+				subnetMask(subnetMask.v4()),
+				gatewayIP(gatewayIp.v4()),
+				dnsIP(dnsIp.v4()) {}
+
+		InternalData() {
+			localIP = IPAddress();
+			subnetMask = IPAddress();
+			gatewayIP = IPAddress();
+			dnsIP = IPAddress();
+		}
+
+	private:
+		uint32_t localIP{};
+		uint32_t subnetMask{};
+		uint32_t gatewayIP{};
+		uint32_t dnsIP{};
 	public:
 		IPAddress getLocalIP() const { return IPAddress(localIP); }
 		IPAddress getSubnetMask() const { return IPAddress(subnetMask); }
 		IPAddress getGatewayIP() const { return IPAddress(gatewayIP); }
 		IPAddress getDnsIP() const { return IPAddress(dnsIP); }
-		void setLocalIP(IPAddress localIP) { InternalData::localIP = localIP.v4(); getConfigManager()->setDirty(); }
-		void setSubnetMask(IPAddress subnetMask) { InternalData::subnetMask = subnetMask.v4(); getConfigManager()->setDirty(); }
-		void setGatewayIP(IPAddress gatewayIP) { InternalData::gatewayIP = gatewayIP.v4(); getConfigManager()->setDirty(); }
-		void setDnsIP(IPAddress dnsIP) { InternalData::dnsIP = dnsIP.v4(); getConfigManager()->setDirty(); }
+		void setLocalIP(IPAddress localIP) { InternalData::localIP = localIP.v4(); }
+		void setSubnetMask(IPAddress subnetMask) { InternalData::subnetMask = subnetMask.v4(); }
+		void setGatewayIP(IPAddress gatewayIP) { InternalData::gatewayIP = gatewayIP.v4(); }
+		void setDnsIP(IPAddress dnsIP) { InternalData::dnsIP = dnsIP.v4(); }
 	};
+
+private:
 
 	class StoredData {
 		InternalData internalData;
@@ -58,36 +73,32 @@ public:
 		const ControlData &getControlData() const { return controlData; }
 	};
 
+	EepromData eepromData{};
+	Task *loopTask = nullptr;
+	bool dirty = false;
+	void writeEeprom();
+
+public:
+	ConfigManager();
 	const EepromData &getEepromData() const { return eepromData; }
+
 	EepromData *getMutableEepromData() { return &eepromData; }
 
-	ConfigManager();
-
-	void reset();
-
-	void saveConfig(ConfigData *configData);
-
-	void saveEeprom();
-
-	void loop();
-
+	void addScheduler(Scheduler *scheduler);
+	void setDirty();
+	void saveInternalData(const InternalData *internalData);
+	void saveConfigData(const ConfigData *configData);
 	void setConfigSaveCallback(const std::function<void()> &saveCallBack) { configSaveCallback = saveCallBack; }
-	void setDirty() { dirty = true; }
-	void clrDirty() { dirty = false; }
-	bool isDirty() const { return dirty; }
 
 private:
-	bool dirty = false;
 
-	EepromData eepromData;
+	static configManagerChecksum hash(configManagerChecksum value, configManagerChecksum c);
 
-	static configManagerChecksum hash(configManagerChecksum value, uint8_t c);
-
-	static configManagerChecksum checksumHelper(uint8_t *byteArray, unsigned long length, configManagerChecksum result = 0);
+	static configManagerChecksum checksumHelper(configManagerChecksum *byteArray, unsigned long length, configManagerChecksum result = 0);
 
 	template<typename T>
 	configManagerChecksum checksumHelper(T value, configManagerChecksum result = 0) {
-		return checksumHelper(reinterpret_cast<uint8_t *>(&value), sizeof(value), result);
+		return checksumHelper(reinterpret_cast<configManagerChecksum *>(&value), sizeof(value), result);
 	}
 
 	template<typename T>
@@ -100,3 +111,5 @@ private:
 	std::function<void()> configSaveCallback = nullptr;
 
 };
+
+ConfigManager *getConfigManager();
