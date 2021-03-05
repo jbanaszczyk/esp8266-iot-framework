@@ -2,16 +2,32 @@
 
 #include "LittleFS.h"
 
+void OtaUpdateHelper::addScheduler(Scheduler *scheduler) {
+	if (scheduler != nullptr) {
+		loopTask = new Task(
+				0,
+				1,
+				[this]() -> void {
+					flash(filename);
+				},
+				scheduler,
+				requestFlag);
+	}
+}
+
 void OtaUpdateHelper::requestStart(String filenameIn) {
 	status = 254;
 	filename = std::move(filenameIn);
 	requestFlag = true;
+	if (loopTask != nullptr) {
+		loopTask->setIterations(1);
+		loopTask->enable();
+	}
 }
 
 void OtaUpdateHelper::loop() {
 	if (requestFlag == true) {
 		flash(filename);
-		requestFlag = false;
 	}
 }
 
@@ -20,6 +36,7 @@ uint8_t OtaUpdateHelper::getStatus() const {
 }
 
 void OtaUpdateHelper::flash(const String &filename) {
+	requestFlag = false;
 	bool answer = false;
 	File file = LittleFS.open(filename, "r");
 

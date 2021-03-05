@@ -52,10 +52,7 @@ void ConfigManager::addScheduler(Scheduler *scheduler) {
 					writeEeprom();
 				},
 				scheduler,
-				false);
-	}
-	if (dirty) {
-		loopTask->enable();
+				dirty);
 	}
 }
 
@@ -69,7 +66,7 @@ void ConfigManager::setDirty() {
 
 configManagerChecksum ConfigManager::checksumHelper(configManagerChecksum *byteArray, unsigned long length, configManagerChecksum result) {
 	for (decltype(length) counter = 0; counter < length; counter++) {
-		result = hash(result, *(byteArray++));
+		result = hash(result, *byteArray);
 		byteArray ++ ;
 	}
 	return result;

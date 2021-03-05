@@ -204,4 +204,12 @@ void webServer::handleFileUpload(AsyncWebServerRequest *request, String filename
     }
 }
 
+void webServer::loop() {
+	otaUpdateHelper.loop();
+}
+
+void webServer::addScheduler(Scheduler *scheduler) {
+	otaUpdateHelper.addScheduler(scheduler);
+}
+
 webServer GUI;

@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include <ESPAsyncWebServer.h>
+#include <TaskSchedulerDeclarations.h>
 
 class webServer
 {
@@ -15,6 +16,8 @@ public:
     AsyncWebServer server = AsyncWebServer(80);
     AsyncWebSocket ws = AsyncWebSocket("/ws");
     void begin();
+    void loop();
+	void addScheduler(Scheduler *scheduler);
 };
 
 extern webServer GUI;
