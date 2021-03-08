@@ -34,7 +34,7 @@ This sends a one time update over web socket of the latest version of `dash.data
 #### data
 
 ```c++
-dashboardData data;
+DashboardData data;
 ```
 This member is the structure in RAM that contains the controls and display items of the dashboard.
 
@@ -118,7 +118,7 @@ For this example, the pre-build python script `preBuildDash.py` will generate th
 #ifndef DASH_H
 #define DASH_H
 
-struct dashboardData
+struct DashboardData
 {
 	char projectName[32];
 	char stringInput[32];

@@ -1,38 +1,65 @@
 #include "Dashboard.h"
 #include "WebServer.h"
 
-void Dashboard::begin(int sampleTimeMs) {
+#if defined(DEBUG_IOT_DASHBOARD) && defined(DEBUG_IOT_PORT)
+#define LOGING_DASH 1
+#define LOG_DASH(...) DEBUG_IOT_PORT.printf_P( "[DASH] " __VA_ARGS__ )
+#else
+#define LOGING_DASH 0
+#define LOG_DASH(...)
+#endif
+
+Dashboard::Dashboard() : sendRepeatInterval(defaultSendRepeatInterval) {
+#if LOGING_DASH
 	getWebServer()->getWs()->onEvent(onWsEvent);
-	loopRate = sampleTimeMs;
-}
-
-void Dashboard::loop() {
-	if (loopPrevious == 0 || (millis() - loopPrevious > loopRate)) {
-		loopPrevious = millis();
-
-		send();
-	}
+#endif
 }
 
 void Dashboard::send() {
-	//send data, first 32bit timestamp and then the binary data structure
-	uint8_t buffer[sizeof(data) + 8];
+	auto now = millis();
+	static_assert(sizeof(now) == 4, "Used in index.js, function wsMessage");
 
-	unsigned long now = millis();
-	memcpy(buffer, reinterpret_cast<uint8_t *>(&now), 8);
-
-	memcpy(buffer + 8, reinterpret_cast<uint8_t *>(&data), sizeof(data));
+	//send dashboardData, first timestamp and then the binary dashboardData structure
+	uint8_t buffer[sizeof(dashboardData) + sizeof(now)];
+	memcpy(buffer, reinterpret_cast<uint8_t *>(&now), sizeof(now));
+	memcpy(buffer + sizeof(now), reinterpret_cast<uint8_t *>(&dashboardData), sizeof(dashboardData));
 
 	getWebServer()->getWs()->binaryAll(buffer, sizeof(buffer));
 }
 
 void Dashboard::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *dataIn, size_t len) {
-	/* initialize new client */
-	if (type == WS_EVT_CONNECT) {
-		Serial.println("New WS client");
-	} else if (type == WS_EVT_DISCONNECT) {
-		Serial.println("Lost WS client");
+#if LOGING_DASH
+	static const char *messages[] = {
+			"WS_EVT_CONNECT",
+			"WS_EVT_DISCONNECT",
+			"WS_EVT_PONG",
+			"WS_EVT_ERROR",
+			"WS_EVT_DATA"
+	};
+	const char *message = type >= 0 && type <= WS_EVT_DATA ? messages[type] : "WS_EVT_???";
+	LOG_DASH("%s\n", message);
+#endif
+}
+
+void Dashboard::addScheduler(Scheduler *scheduler) {
+	if (scheduler != nullptr) {
+		tLoop = new Task(
+				sendRepeatInterval,
+				-1,
+				[this]() -> void {
+					send();
+				},
+				scheduler,
+				true);
 	}
 }
 
-Dashboard dash;
+void Dashboard::setSendRepeatInterval(unsigned long sendRepeatInterval) {
+	Dashboard::sendRepeatInterval = sendRepeatInterval;
+	tLoop->setInterval(sendRepeatInterval);
+}
+
+IDashboard *getDashboard() {
+	static Dashboard dashboard = Dashboard();
+	return &dashboard;
+}

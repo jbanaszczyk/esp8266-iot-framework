@@ -1,7 +1,3 @@
-// inspired by https://github.com/tzapu/WiFiManager but
-// with more flexibility to add your own web server setup
-// state machine for changing wifi settings on the fly
-
 #include <ESP8266WiFi.h>
 #include "WiFiManager.h"
 #include "ConfigManager.h"
@@ -106,7 +102,7 @@ void WiFiManager::addScheduler(Scheduler *scheduler) {
 }
 
 void WiFiManager::onStationModeGotIP(const WiFiEventStationModeGotIP &evt) const {
-	LOG_WIFI("%6ld StationModeGotIP ssid:%s IP:%s mask:%s gateway:%s\n", millis(), WiFi.SSID().c_str(), evt.ip.toString().c_str(), evt.mask.toString().c_str(), evt.gw.toString().c_str());
+	LOG_WIFI("%6ld onStationModeGotIP ssid:%s IP:%s mask:%s gateway:%s\n", millis(), WiFi.SSID().c_str(), evt.ip.toString().c_str(), evt.mask.toString().c_str(), evt.gw.toString().c_str());
 	tInitialConnect->disable();
 	if (!tChangeWifiTimeOut->isEnabled()) {
 		tApStartStop->restart();
@@ -116,7 +112,7 @@ void WiFiManager::onStationModeGotIP(const WiFiEventStationModeGotIP &evt) const
 }
 
 void WiFiManager::onStationModeDisconnected(const WiFiEventStationModeDisconnected &evt) const {
-	LOG_WIFI("%6ld StationModeDisconnected ssid %s reason %d\n", millis(), evt.ssid.c_str(), evt.reason);
+	LOG_WIFI("%6ld onStationModeDisconnected ssid %s reason %d\n", millis(), evt.ssid.c_str(), evt.reason);
 	tInitialConnect->disable();
 	tApStartStop->restart();
 }
@@ -199,7 +195,7 @@ void WiFiManager::connectNewWifiCheck() {
 
 	WiFi.persistent(true);
 	WiFi.setAutoReconnect(true);
-	LOG_WIFI("%6ld connectNewWiFi done, status: %d %s\n", millis(), WiFi.status(), apMode ? "true" : "false");
+	LOG_WIFI("%6ld connectNewWiFi done, status: %d\n", millis(), WiFi.status());
 }
 
 void WiFiManager::connectNewWifi() {
@@ -230,6 +226,9 @@ void WiFiManager::connectNewWifi() {
 
 	tChangeWifiTimeOut->setLtsPointer(oldConfig);
 	tChangeWifiTimeOut->restart();
+
+	WiFi.persistent(true);
+	WiFi.setAutoReconnect(true);
 
 	wiFiConfig->getSsid().isEmpty()
 	? WiFi.begin()

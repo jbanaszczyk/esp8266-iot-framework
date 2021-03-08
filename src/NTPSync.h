@@ -10,13 +10,15 @@ public:
 
 	virtual void clrSynced() = 0;
 
+	virtual time_t getNow() = 0;
+
 	virtual time_t getStartTime() const = 0;
 
 	virtual time_t getLastSyncTime() const = 0;
 
 	virtual void setFormat(const char *format, size_t bufferSize) = 0;
 
-	virtual time_t getNow() = 0;
+	virtual std::unique_ptr<char[]> timeStr(time_t someTime) = 0;
 
 	virtual void addSyncCallback(std::function<void()> cb) = 0;
 };
@@ -37,6 +39,8 @@ public:
 
 	void clrSynced() override { synced = false; }
 
+	time_t getNow() override;
+
 	time_t getStartTime() const override { return startTime; }
 
 	time_t getLastSyncTime() const override { return lastSyncTime; }
@@ -45,9 +49,7 @@ public:
 
 	void setFormat(const char *format, size_t bufferSize) override;
 
-	std::unique_ptr<char[]> showNow(time_t someTime);
-
-	time_t getNow() override;
+	std::unique_ptr<char[]> timeStr(time_t someTime) override;
 };
 
 INTPSync *getNTPSync();

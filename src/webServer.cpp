@@ -153,7 +153,7 @@ void WebServer::bindAll() {
 			[this](AsyncWebServerRequest *request) {},
 			[](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final) {},
 			[this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-				memcpy(reinterpret_cast<uint8_t *>(&(dash.data)) + (request->arg("start")).toInt(), data, static_cast<size_t>((request->arg("length")).toInt()));
+				memcpy(reinterpret_cast<uint8_t *>(getDashboard()->getMutualDashboardData()) + (request->arg("start")).toInt(), data, static_cast<size_t>((request->arg("length")).toInt()));
 				request->send(200, PSTR("text/html"), "");
 			});
 }

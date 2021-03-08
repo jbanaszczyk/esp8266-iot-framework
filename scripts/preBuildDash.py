@@ -16,7 +16,7 @@ def preBuildDashFun():
     # binascii.crc32(mes.encode('utf8'))
     #headers
     h.write("#pragma once\n\n")
-    h.write("struct dashboardData {\n")
+    h.write("struct DashboardData {\n")
 
     #loop through variables
     for item in data:        

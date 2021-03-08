@@ -32,7 +32,7 @@ void NTPSync::setFormat(const char *format, size_t bufferSize) {
 	strftimeBufferSize = bufferSize;
 }
 
-std::unique_ptr<char[]> NTPSync::showNow(time_t someTime) {
+std::unique_ptr<char[]> NTPSync::timeStr(time_t someTime) {
 	struct tm *info = localtime(&someTime);
 	std::unique_ptr<char[]> buffer(new char[strftimeBufferSize]);
 	strftime(buffer.get(), strftimeBufferSize, timeFormat.c_str(), info);
