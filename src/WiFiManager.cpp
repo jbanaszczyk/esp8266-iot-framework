@@ -287,8 +287,8 @@ void WiFiManager::prepareWiFi_STA(String newSSID, String newPass, const String &
 }
 
 void WiFiManager::prepareWiFi_AP_PSK(String newPass) {
-	LOG_WIFI("%6ld prepareWiFi_AP_PSK\n", millis() );
-	if ( tChangeApPsk != nullptr) {
+	LOG_WIFI("%6ld prepareWiFi_AP_PSK\n", millis());
+	if (tChangeApPsk != nullptr) {
 		auto newPsk = new NewApPsk(newPass);
 		tChangeApPsk->setLtsPointer(newPsk);
 		tChangeApPsk->restart();
@@ -377,10 +377,13 @@ WiFiManager::WiFiConfig *WiFiManager::WiFiConfig::fromConfigManager() {
 }
 
 WiFiManager::WiFiConfig *WiFiManager::WiFiConfig::fromWiFi() {
-	return new WiFiConfig(
-			WiFi.SSID(), WiFi.psk(),
-			WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), WiFi.dnsIP()
-	);
+	return wifi_station_dhcpc_status() == DHCP_STARTED
+	       ? new WiFiConfig(
+					WiFi.SSID(), WiFi.psk())
+	       : new WiFiConfig(
+					WiFi.SSID(), WiFi.psk(),
+					WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), WiFi.dnsIP()
+			);
 }
 
 IWiFiManager *getWiFiManager(const char *apName) {
