@@ -1,4 +1,4 @@
-#include "TimeSync.h"
+#include "NTPSync.h"
 
 #include <TZ.h>
 #include <coredecls.h>
@@ -11,10 +11,6 @@ void NTPSync::begin(const char *tz, const char *server1, const char *server2, co
 
 void NTPSync::begin(const char *tz) {
 	begin(tz, "0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org");
-}
-
-void NTPSync::begin() {
-	begin(TZ_Etc_UTC);
 }
 
 bool NTPSync::isSynced() const {
@@ -34,6 +30,10 @@ bool NTPSync::waitForSyncResult(unsigned long timeoutLength) const {
 		}
 	}
 	return false;
+}
+
+void NTPSync::setTime(const char *tz, const char *server1, const char *server2, const char *server3) {
+	configTime(tz, server1, server2, server3);
 }
 
 

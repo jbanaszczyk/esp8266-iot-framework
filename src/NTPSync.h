@@ -5,7 +5,6 @@
 class NTPSync {
 
 public:
-	void begin();
 	void begin(const char *tz);
 	void begin(const char *tz, const char *server1, const char *server2 = nullptr, const char *server3 = nullptr);
 
@@ -14,7 +13,7 @@ public:
 
 private :
 	bool synced = false;
-	void setTime(const char *tz, const char *server1, const char *server2, const char *server3);
+	static void setTime(const char *tz, const char *server1, const char *server2, const char *server3);
 };
 
 extern NTPSync timeSync;
