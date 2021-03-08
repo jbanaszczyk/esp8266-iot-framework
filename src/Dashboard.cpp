@@ -1,12 +1,12 @@
-#include "dashboard.h"
+#include "Dashboard.h"
 #include "WebServer.h"
 
-void dashboard::begin(int sampleTimeMs) {
+void Dashboard::begin(int sampleTimeMs) {
 	getWebServer()->getWs()->onEvent(onWsEvent);
 	loopRate = sampleTimeMs;
 }
 
-void dashboard::loop() {
+void Dashboard::loop() {
 	if (loopPrevious == 0 || (millis() - loopPrevious > loopRate)) {
 		loopPrevious = millis();
 
@@ -14,7 +14,7 @@ void dashboard::loop() {
 	}
 }
 
-void dashboard::send() {
+void Dashboard::send() {
 	//send data, first 32bit timestamp and then the binary data structure
 	uint8_t buffer[sizeof(data) + 8];
 
@@ -26,7 +26,7 @@ void dashboard::send() {
 	getWebServer()->getWs()->binaryAll(buffer, sizeof(buffer));
 }
 
-void dashboard::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *dataIn, size_t len) {
+void Dashboard::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *dataIn, size_t len) {
 	/* initialize new client */
 	if (type == WS_EVT_CONNECT) {
 		Serial.println("New WS client");
@@ -35,4 +35,4 @@ void dashboard::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, 
 	}
 }
 
-dashboard dash;
+Dashboard dash;

@@ -1,7 +1,7 @@
 #include <EEPROM.h>
 #include <Arduino.h>
 
-#include "configManager.h"
+#include "ConfigManager.h"
 
 ConfigManager::ConfigManager() {
 	EEPROM.begin(sizeof(EepromData));

@@ -1,4 +1,4 @@
-#include "timeSync.h"
+#include "TimeSync.h"
 
 #include <TZ.h>
 #include <coredecls.h>

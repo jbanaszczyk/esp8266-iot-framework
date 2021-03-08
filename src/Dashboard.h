@@ -4,7 +4,7 @@
 #include <ESPAsyncWebServer.h>
 #include "generated/dash.h"
 
-class dashboard
+class Dashboard
 {
 
 private:
@@ -19,6 +19,6 @@ public:
     dashboardData data;
 };
 
-extern dashboard dash;
+extern Dashboard dash;
 
 #endif

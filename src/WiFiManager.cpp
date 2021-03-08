@@ -4,7 +4,7 @@
 
 #include <ESP8266WiFi.h>
 #include "WiFiManager.h"
-#include "configManager.h"
+#include "ConfigManager.h"
 
 #if defined(DEBUG_IOT_WIFI_MANAGER) && defined(DEBUG_IOT_PORT)
 #define LOG_WIFI(...) DEBUG_IOT_PORT.printf_P( "[WIFI] " __VA_ARGS__ )

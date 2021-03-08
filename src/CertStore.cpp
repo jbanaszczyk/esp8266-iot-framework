@@ -1,4 +1,4 @@
-#include "certStore.h"
+#include "CertStore.h"
 #include "generated/certificates.h"
 
 #if defined(DEBUG_IOT_CERT_STORE) && defined(DEBUG_IOT_PORT)
