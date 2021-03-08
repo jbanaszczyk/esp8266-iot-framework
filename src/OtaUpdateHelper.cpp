@@ -4,11 +4,12 @@
 
 void OtaUpdateHelper::addScheduler(Scheduler *scheduler) {
 	if (scheduler != nullptr) {
+		aScheduler = scheduler;
 		tLoop = new Task(
 				0,
 				1,
 				[this]() -> void {
-					flash(filename);
+					flash();
 				},
 				scheduler,
 				requestFlag);
@@ -17,17 +18,11 @@ void OtaUpdateHelper::addScheduler(Scheduler *scheduler) {
 
 void OtaUpdateHelper::requestStart(String filenameIn) {
 	status = 254;
-	filename = std::move(filenameIn);
+	auto *filename = new String(filenameIn);
 	requestFlag = true;
 	if (tLoop != nullptr) {
-		tLoop->setIterations(1);
-		tLoop->enable();
-	}
-}
-
-void OtaUpdateHelper::loop() {
-	if (requestFlag == true) {
-		flash(filename);
+		tLoop->setLtsPointer(filename);
+		tLoop->restart();
 	}
 }
 
@@ -35,10 +30,11 @@ uint8_t OtaUpdateHelper::getStatus() const {
 	return status;
 }
 
-void OtaUpdateHelper::flash(const String &filename) {
+void OtaUpdateHelper::flash() {
+	auto *fileName = static_cast<String *>(aScheduler->currentLts());
 	requestFlag = false;
 	bool answer = false;
-	File file = LittleFS.open(filename, "r");
+	File file = LittleFS.open(*fileName, "r");
 
 	if (!file) {
 		Serial.println(PSTR("Failed to open file for reading"));
@@ -65,4 +61,7 @@ void OtaUpdateHelper::flash(const String &filename) {
 	status = static_cast<uint8_t>(answer);
 }
 
-OtaUpdateHelper otaUpdateHelper;
+IOtaUpdateHelper *getOtaUpdateHelper() {
+	static OtaUpdateHelper otaUpdateHelper = OtaUpdateHelper();
+	return &otaUpdateHelper;
+}

@@ -20,7 +20,7 @@ Of course if you do not want to use certain parts of the framework you can remov
 #include "LittleFS.h"
 
 #include "WiFiManager.h"
-#include "webServer.h"
+#include "WebServer.h"
 #include "otaUpdateHelper.h"
 #include "fetch.h"
 #include "configManager.h"

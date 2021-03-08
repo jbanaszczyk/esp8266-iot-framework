@@ -16,29 +16,18 @@ public:
 	virtual void addScheduler(Scheduler *scheduler) = 0;
 
 	virtual void prepareWiFi_STA_forget() = 0;
-
 	virtual void prepareWiFi_STA(String newSSID, String newPass) = 0;
-
 	virtual void prepareWiFi_STA(String newSSID, String newPass, const String &newLocalIP, const String &newSubnetMask, const String &newGatewayIP, const String &newDnsIP) = 0;
-
 	virtual void prepareWiFi_AP_PSK(String newPass) = 0;
 
 	virtual bool isApMode() const = 0;
-
 	virtual bool isDHCP() = 0;
-
 	virtual String getSSID() = 0;
-
 	virtual String getLocalIP() = 0;
-
 	virtual String getSubnetMask() = 0;
-
 	virtual String getGatewayIP() = 0;
-
 	virtual String getDnsIP() = 0;
 };
-
-IWiFiManager *getWiFiManager(char const *apName);
 
 class WiFiManager : public IWiFiManager {
 public:
@@ -129,3 +118,5 @@ private:
 	void apStop();
 	void apStart();
 };
+
+IWiFiManager *getWiFiManager(char const *apName);

@@ -1,4 +1,4 @@
-#include "webServer.h"
+#include "WebServer.h"
 #include "ArduinoJson.h"
 #include "LittleFS.h"
 
@@ -10,9 +10,8 @@
 #include "configManager.h"
 #include "OtaUpdateHelper.h"
 #include "dashboard.h"
-#include "WiFiManager.h"
 
-void webServer::begin() {
+WebServer::WebServer() {
 	//to enable testing and debugging of the interface
 	DefaultHeaders::Instance().addHeader(PSTR("Access-Control-Allow-Origin"), PSTR("*"));
 
@@ -29,7 +28,7 @@ void webServer::begin() {
 	bindAll();
 }
 
-void webServer::bindAll() {
+void WebServer::bindAll() {
 	//Restart the ESP
 	server.on(PSTR("/api/restart"), HTTP_POST, [](AsyncWebServerRequest *request) {
 		request->send(200, PSTR("text/html"), ""); //respond first because of restart
@@ -90,7 +89,7 @@ void webServer::bindAll() {
 			files.add(dir.fileName());
 
 		//get used and total data
-		FSInfo fs_info;
+		FSInfo fs_info{};
 		LittleFS.info(fs_info);
 		jsonBuffer["used"] = String(static_cast<uint32_t>(fs_info.usedBytes));
 		jsonBuffer["max"] = String(static_cast<uint32_t>(fs_info.totalBytes));
@@ -108,7 +107,7 @@ void webServer::bindAll() {
 
 	//update from LittleFS
 	server.on(PSTR("/api/update"), HTTP_POST, [](AsyncWebServerRequest *request) {
-		otaUpdateHelper.requestStart("/" + request->arg("filename"));
+		getOtaUpdateHelper()->requestStart("/" + request->arg("filename"));
 		request->send(200, PSTR("text/html"), "");
 	});
 
@@ -117,7 +116,7 @@ void webServer::bindAll() {
 		String JSON;
 		StaticJsonDocument<200> jsonBuffer;
 
-		jsonBuffer["status"] = otaUpdateHelper.getStatus();
+		jsonBuffer["status"] = getOtaUpdateHelper()->getStatus();
 		serializeJson(jsonBuffer, JSON);
 
 		request->send(200, PSTR("text/html"), JSON);
@@ -135,14 +134,14 @@ void webServer::bindAll() {
 	server.on(
 			PSTR("/api/config/set"), HTTP_POST,
 			[this](AsyncWebServerRequest *request) {},
-			[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
+			[](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final) {},
 			[this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
 				if (index != 0 || total != len) {
 					request->send(500, PSTR("text/html"), "[webServer] not supported handleBody");
 				} else if (len != sizeof(ConfigData)) {
 					request->send(500, PSTR("text/html"), "[webServer] ConfigData size mismatch");
 				} else {
-					ConfigData *config = reinterpret_cast<ConfigData *>(data);
+					auto *config = reinterpret_cast<ConfigData *>(data);
 					getConfigManager()->saveConfigData(config);
 					request->send(200, PSTR("text/html"), "");
 				}
@@ -152,25 +151,25 @@ void webServer::bindAll() {
 	server.on(
 			PSTR("/api/dash/set"), HTTP_POST,
 			[this](AsyncWebServerRequest *request) {},
-			[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
+			[](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final) {},
 			[this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-				memcpy(reinterpret_cast<uint8_t *>(&(dash.data)) + (request->arg("start")).toInt(), data, (request->arg("length")).toInt());
+				memcpy(reinterpret_cast<uint8_t *>(&(dash.data)) + (request->arg("start")).toInt(), data, static_cast<size_t>((request->arg("length")).toInt()));
 				request->send(200, PSTR("text/html"), "");
 			});
 }
 
 // Callback for the html
-void webServer::serveProgmem(AsyncWebServerRequest *request) {
+void WebServer::serveProgmem(AsyncWebServerRequest *request) {
 	// Dump the byte array in PROGMEM with a 200 HTTP code (OK)
 	AsyncWebServerResponse *response = request->beginResponse_P(200, PSTR("text/html"), html, html_len);
 
-	// Tell the browswer the content is Gzipped
+	// Tell the browser the content is Gzipped
 	response->addHeader(PSTR("Content-Encoding"), PSTR("gzip"));
 
 	request->send(response);
 }
 
-void webServer::handleFileUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+void WebServer::handleFileUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
 	static File fsUploadFile;
 
 	if (!index) {
@@ -199,12 +198,11 @@ void webServer::handleFileUpload(AsyncWebServerRequest *request, String filename
 	}
 }
 
-void webServer::loop() {
-	otaUpdateHelper.loop();
+void WebServer::addScheduler(Scheduler *scheduler) {
+	getOtaUpdateHelper()->addScheduler(scheduler);
 }
 
-void webServer::addScheduler(Scheduler *scheduler) {
-	otaUpdateHelper.addScheduler(scheduler);
+IWebServer *getWebServer() {
+	static WebServer webServer = WebServer();
+	return &webServer;
 }
-
-webServer GUI;

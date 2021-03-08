@@ -2,7 +2,7 @@
 #include <LittleFS.h>
 
 #include <WiFiManager.h>
-#include <webServer.h>
+#include <WebServer.h>
 #include <OtaUpdateHelper.h>
 #include <HTTPRequest.h>
 #include <configManager.h>

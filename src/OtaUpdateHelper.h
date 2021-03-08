@@ -3,20 +3,28 @@
 #include <Arduino.h>
 #include <TaskSchedulerDeclarations.h>
 
-class OtaUpdateHelper {
-
-private:
-	String filename;
-	bool requestFlag = false;
-	uint8_t status = 255;
-	void flash(const String &filename);
-	Task *tLoop = nullptr;
-
+class IOtaUpdateHelper {
 public:
-	void requestStart(String filename);
-	void loop();
-	uint8_t getStatus() const;
-	void addScheduler(Scheduler *scheduler);
+	virtual ~IOtaUpdateHelper() = default;
+	virtual void requestStart(String filename) = 0;
+	virtual uint8_t getStatus() const = 0;
+	virtual void addScheduler(Scheduler *scheduler) = 0;
 };
 
-extern OtaUpdateHelper otaUpdateHelper;
+class OtaUpdateHelper : public IOtaUpdateHelper {
+
+private:
+	Scheduler *aScheduler = nullptr;
+	bool requestFlag = false;
+	uint8_t status = 255;
+	Task *tLoop = nullptr;
+	void flash();
+
+public:
+	OtaUpdateHelper() = default;
+	void requestStart(String filename) override;
+	uint8_t getStatus() const override;
+	void addScheduler(Scheduler *scheduler) override;
+};
+
+IOtaUpdateHelper *getOtaUpdateHelper();
