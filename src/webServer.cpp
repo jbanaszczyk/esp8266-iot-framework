@@ -10,55 +10,55 @@
 #include "configManager.h"
 #include "OtaUpdateHelper.h"
 #include "dashboard.h"
+#include "WiFiManager.h"
 
-void webServer::begin()
-{
-    //to enable testing and debugging of the interface
-    DefaultHeaders::Instance().addHeader(PSTR("Access-Control-Allow-Origin"), PSTR("*"));
+void webServer::begin() {
+	//to enable testing and debugging of the interface
+	DefaultHeaders::Instance().addHeader(PSTR("Access-Control-Allow-Origin"), PSTR("*"));
 
-    server.addHandler(&ws);
-    server.begin();
+	server.addHandler(&ws);
+	server.begin();
 
-    server.serveStatic("/download", LittleFS, "/");
+	server.serveStatic("/download", LittleFS, "/");
 
-    server.onNotFound(serveProgmem);
+	server.onNotFound(serveProgmem);
 
-    //handle uploads
-    server.on(PSTR("/upload"), HTTP_POST, [](AsyncWebServerRequest *request) {}, handleFileUpload);
+	//handle uploads
+	server.on(PSTR("/upload"), HTTP_POST, [](AsyncWebServerRequest *request) {}, handleFileUpload);
 
-    bindAll();
+	bindAll();
 }
 
-void webServer::bindAll()
-{
-    //Restart the ESP
-    server.on(PSTR("/api/restart"), HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, PSTR("text/html"), ""); //respond first because of restart
-        ESP.restart();
-    });
+void webServer::bindAll() {
+	//Restart the ESP
+	server.on(PSTR("/api/restart"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		request->send(200, PSTR("text/html"), ""); //respond first because of restart
+		ESP.restart();
+	});
 
-    //update WiFi details
-    server.on(PSTR("/api/wifi/set"), HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-	    wiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"));
-    });
+	//update WiFi details
+	server.on(PSTR("/api/wifi/set"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
+		getWiFiManager(nullptr)->prepareWiFi_STA(request->arg("ssid"), request->arg("pass"));
+	});
 
-    //update WiFi details with static IP
-    server.on(PSTR("/api/wifi/setStatic"), HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-	    wiFiManager.prepareWiFi_STA(request->arg("ssid"), request->arg("pass"), request->arg("localIP"), request->arg("subnetMask"), request->arg("gatewayIP"), request->arg("dnsIP"));
-    });
+	//update WiFi details with static IP
+	server.on(PSTR("/api/wifi/setStatic"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
+		getWiFiManager(nullptr)->prepareWiFi_STA(request->arg("ssid"), request->arg("pass"), request->arg("localIP"), request->arg("subnetMask"), request->arg("gatewayIP"), request->arg("dnsIP"));
+	});
 
 	//forget WiFi details
 	server.on(PSTR("/api/wifi/forget"), HTTP_POST, [](AsyncWebServerRequest *request) {
 		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-		wiFiManager.prepareWiFi_forget();
+		getWiFiManager(nullptr)->prepareWiFi_STA_forget();
+
 	});
 
 	//set access point password
 	server.on(PSTR("/api/wifi/set_ap"), HTTP_POST, [](AsyncWebServerRequest *request) {
 		request->send(200, PSTR("text/html"), ""); //respond first because of wifi change
-		wiFiManager.prepareWiFi_AP(request->arg("pass"));
+		getWiFiManager(nullptr)->prepareWiFi_AP_PSK(request->arg("pass"));
 	});
 
 	//get WiFi details
@@ -66,142 +66,137 @@ void webServer::bindAll()
 		String JSON;
 		StaticJsonDocument<200> jsonBuffer;
 
-		jsonBuffer["apMode"] = wiFiManager.isApMode();
-		jsonBuffer["ssid"] = wiFiManager.getSSID();
-		jsonBuffer["dhcp"] = wiFiManager.isDHCP();
-		jsonBuffer["localIP"] = wiFiManager.getLocalIP();
-		jsonBuffer["subnetMask"] = wiFiManager.getSubnetMask();
-		jsonBuffer["gatewayIP"] = wiFiManager.getGatewayIP();
-		jsonBuffer["dnsIP"] = wiFiManager.getDnsIP();
+		jsonBuffer["apMode"] = getWiFiManager(nullptr)->isApMode();
+		jsonBuffer["ssid"] = getWiFiManager(nullptr)->getSSID();
+		jsonBuffer["dhcp"] = getWiFiManager(nullptr)->isDHCP();
+		jsonBuffer["localIP"] = getWiFiManager(nullptr)->getLocalIP();
+		jsonBuffer["subnetMask"] = getWiFiManager(nullptr)->getSubnetMask();
+		jsonBuffer["gatewayIP"] = getWiFiManager(nullptr)->getGatewayIP();
+		jsonBuffer["dnsIP"] = getWiFiManager(nullptr)->getDnsIP();
 		serializeJson(jsonBuffer, JSON);
 
-        request->send(200, PSTR("text/html"), JSON);
-    });
+		request->send(200, PSTR("text/html"), JSON);
+	});
 
-    //get file listing
-    server.on(PSTR("/api/files/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
-        String JSON;
-        StaticJsonDocument<1000> jsonBuffer;
-        JsonArray files = jsonBuffer.createNestedArray("files");
+	//get file listing
+	server.on(PSTR("/api/files/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
+		String JSON;
+		StaticJsonDocument<1000> jsonBuffer;
+		JsonArray files = jsonBuffer.createNestedArray("files");
 
-        //get file listing
-        Dir dir = LittleFS.openDir("");
-        while (dir.next())
-            files.add(dir.fileName());
+		//get file listing
+		Dir dir = LittleFS.openDir("");
+		while (dir.next())
+			files.add(dir.fileName());
 
-        //get used and total data
-        FSInfo fs_info;
-        LittleFS.info(fs_info);
-	    jsonBuffer["used"] = String(static_cast<uint32_t>(fs_info.usedBytes));
-	    jsonBuffer["max"] = String(static_cast<uint32_t>(fs_info.totalBytes));
+		//get used and total data
+		FSInfo fs_info;
+		LittleFS.info(fs_info);
+		jsonBuffer["used"] = String(static_cast<uint32_t>(fs_info.usedBytes));
+		jsonBuffer["max"] = String(static_cast<uint32_t>(fs_info.totalBytes));
 
-        serializeJson(jsonBuffer, JSON);
+		serializeJson(jsonBuffer, JSON);
 
-        request->send(200, PSTR("text/html"), JSON);
-    });
+		request->send(200, PSTR("text/html"), JSON);
+	});
 
-    //remove file
-    server.on(PSTR("/api/files/remove"), HTTP_POST, [](AsyncWebServerRequest *request) {
-        LittleFS.remove("/" + request->arg("filename"));
-        request->send(200, PSTR("text/html"), "");
-    });
+	//remove file
+	server.on(PSTR("/api/files/remove"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		LittleFS.remove("/" + request->arg("filename"));
+		request->send(200, PSTR("text/html"), "");
+	});
 
-    //update from LittleFS
-    server.on(PSTR("/api/update"), HTTP_POST, [](AsyncWebServerRequest *request) {        
-        otaUpdateHelper.requestStart("/" + request->arg("filename"));
-        request->send(200, PSTR("text/html"), "");
-    });
+	//update from LittleFS
+	server.on(PSTR("/api/update"), HTTP_POST, [](AsyncWebServerRequest *request) {
+		otaUpdateHelper.requestStart("/" + request->arg("filename"));
+		request->send(200, PSTR("text/html"), "");
+	});
 
-    //update status
-    server.on(PSTR("/api/update-status"), HTTP_GET, [](AsyncWebServerRequest *request) {
-        String JSON;
-        StaticJsonDocument<200> jsonBuffer;
+	//update status
+	server.on(PSTR("/api/update-status"), HTTP_GET, [](AsyncWebServerRequest *request) {
+		String JSON;
+		StaticJsonDocument<200> jsonBuffer;
 
-        jsonBuffer["status"] = otaUpdateHelper.getStatus();
-        serializeJson(jsonBuffer, JSON);
+		jsonBuffer["status"] = otaUpdateHelper.getStatus();
+		serializeJson(jsonBuffer, JSON);
 
-        request->send(200, PSTR("text/html"), JSON);
-    });
+		request->send(200, PSTR("text/html"), JSON);
+	});
 
-    //send binary configuration data
-    server.on(PSTR("/api/config/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
-        AsyncResponseStream *response = request->beginResponseStream(PSTR("application/octet-stream"));
-        auto configData = getConfigManager()->getEepromData().getStoredData().getConfigData();
-	    response->write(reinterpret_cast<const char*>(&configData), sizeof(configData));
-        request->send(response);
-    });
+	//send binary configuration data
+	server.on(PSTR("/api/config/get"), HTTP_GET, [](AsyncWebServerRequest *request) {
+		AsyncResponseStream *response = request->beginResponseStream(PSTR("application/octet-stream"));
+		auto configData = getConfigManager()->getEepromData().getStoredData().getConfigData();
+		response->write(reinterpret_cast<const char *>(&configData), sizeof(configData));
+		request->send(response);
+	});
 
-    //receive binary configuration data from body
-    server.on(
-        PSTR("/api/config/set"), HTTP_POST,
-        [this](AsyncWebServerRequest *request) {},
-        [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
-        [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-        	if ( index != 0 || total != len) {
-		        request->send(500, PSTR("text/html"), "[webServer] not supported handleBody");
-	        } else if ( len != sizeof (ConfigData)) {
-		        request->send(500, PSTR("text/html"), "[webServer] ConfigData size mismatch");
-        	} else {
-		        ConfigData *config = reinterpret_cast<ConfigData *>(data);
-		        getConfigManager()->saveConfigData(config);
-		        request->send(200, PSTR("text/html"), "");
-        	}
-        });
+	//receive binary configuration data from body
+	server.on(
+			PSTR("/api/config/set"), HTTP_POST,
+			[this](AsyncWebServerRequest *request) {},
+			[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
+			[this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+				if (index != 0 || total != len) {
+					request->send(500, PSTR("text/html"), "[webServer] not supported handleBody");
+				} else if (len != sizeof(ConfigData)) {
+					request->send(500, PSTR("text/html"), "[webServer] ConfigData size mismatch");
+				} else {
+					ConfigData *config = reinterpret_cast<ConfigData *>(data);
+					getConfigManager()->saveConfigData(config);
+					request->send(200, PSTR("text/html"), "");
+				}
+			});
 
-    //receive binary configuration data from body
-    server.on(
-        PSTR("/api/dash/set"), HTTP_POST,
-        [this](AsyncWebServerRequest *request) {},
-        [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
-        [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-            memcpy(reinterpret_cast<uint8_t *>(&(dash.data)) + (request->arg("start")).toInt(), data, (request->arg("length")).toInt());
-            request->send(200, PSTR("text/html"), "");
-        });
+	//receive binary configuration data from body
+	server.on(
+			PSTR("/api/dash/set"), HTTP_POST,
+			[this](AsyncWebServerRequest *request) {},
+			[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {},
+			[this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+				memcpy(reinterpret_cast<uint8_t *>(&(dash.data)) + (request->arg("start")).toInt(), data, (request->arg("length")).toInt());
+				request->send(200, PSTR("text/html"), "");
+			});
 }
 
 // Callback for the html
-void webServer::serveProgmem(AsyncWebServerRequest *request)
-{    
-    // Dump the byte array in PROGMEM with a 200 HTTP code (OK)
-    AsyncWebServerResponse *response = request->beginResponse_P(200, PSTR("text/html"), html, html_len);
+void webServer::serveProgmem(AsyncWebServerRequest *request) {
+	// Dump the byte array in PROGMEM with a 200 HTTP code (OK)
+	AsyncWebServerResponse *response = request->beginResponse_P(200, PSTR("text/html"), html, html_len);
 
-    // Tell the browswer the content is Gzipped
-    response->addHeader(PSTR("Content-Encoding"), PSTR("gzip"));
-    
-    request->send(response);    
+	// Tell the browswer the content is Gzipped
+	response->addHeader(PSTR("Content-Encoding"), PSTR("gzip"));
+
+	request->send(response);
 }
 
-void webServer::handleFileUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
-{
-    static File fsUploadFile;
+void webServer::handleFileUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+	static File fsUploadFile;
 
-    if (!index)
-    {
-        Serial.println(PSTR("Start file upload"));
-        Serial.println(filename);
+	if (!index) {
+		Serial.println(PSTR("Start file upload"));
+		Serial.println(filename);
 
-        if (!filename.startsWith("/"))
-            filename = "/" + filename;
+		if (!filename.startsWith("/"))
+			filename = "/" + filename;
 
-        fsUploadFile = LittleFS.open(filename, "w");
-    }
+		fsUploadFile = LittleFS.open(filename, "w");
+	}
 
-    for (size_t i = 0; i < len; i++)
-    {
-        fsUploadFile.write(data[i]);
-    }
+	for (size_t i = 0; i < len; i++) {
+		fsUploadFile.write(data[i]);
+	}
 
-    if (final)
-    {
-        String JSON;
-        StaticJsonDocument<100> jsonBuffer;
+	if (final) {
+		String JSON;
+		StaticJsonDocument<100> jsonBuffer;
 
-        jsonBuffer["success"] = fsUploadFile.isFile();
-        serializeJson(jsonBuffer, JSON);
+		jsonBuffer["success"] = fsUploadFile.isFile();
+		serializeJson(jsonBuffer, JSON);
 
-        request->send(200, PSTR("text/html"), JSON);
-        fsUploadFile.close();        
-    }
+		request->send(200, PSTR("text/html"), JSON);
+		fsUploadFile.close();
+	}
 }
 
 void webServer::loop() {

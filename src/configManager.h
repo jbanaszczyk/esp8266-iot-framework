@@ -74,7 +74,7 @@ private:
 	};
 
 	EepromData eepromData{};
-	Task *loopTask = nullptr;
+	Task *tLoop = nullptr;
 	bool dirty = false;
 	void writeEeprom();
 

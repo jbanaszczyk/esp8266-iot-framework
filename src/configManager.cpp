@@ -45,7 +45,7 @@ void ConfigManager::writeEeprom() {
 
 void ConfigManager::addScheduler(Scheduler *scheduler) {
 	if (scheduler != nullptr) {
-		loopTask = new Task(
+		tLoop = new Task(
 				0,
 				1,
 				[this]() -> void {
@@ -58,9 +58,9 @@ void ConfigManager::addScheduler(Scheduler *scheduler) {
 
 void ConfigManager::setDirty() {
 	dirty = true;
-	if (loopTask != nullptr) {
-		loopTask->setIterations(1);
-		loopTask->enable();
+	if (tLoop != nullptr) {
+		tLoop->setIterations(1);
+		tLoop->enable();
 	}
 }
 

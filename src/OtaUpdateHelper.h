@@ -10,7 +10,7 @@ private:
 	bool requestFlag = false;
 	uint8_t status = 255;
 	void flash(const String &filename);
-	Task *loopTask = nullptr;
+	Task *tLoop = nullptr;
 
 public:
 	void requestStart(String filename);

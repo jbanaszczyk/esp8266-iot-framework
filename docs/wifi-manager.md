@@ -17,12 +17,12 @@ void loop();
 ```
 This method must be called from the main loop of the application and allows to set and change the wifi details asynchronously from the web server call.
 
-#### prepareWiFi_forget
+#### prepareWiFi_STA_forget
 
 ```c++
-void prepareWiFi_forget();
+void prepareWiFi_STA_forget();
 ```
-A call to this function will force forget the stored WiFi details and start a standalone portal.
+A call to this function will force forgetWiFi the stored WiFi details and start a standalone portal.
 
 #### isApMode
 
@@ -84,11 +84,11 @@ static bool isDHCP();
 
 Returns `true` if WiFi is connected and ESP8266 uses external DHCP.
 
-#### prepareWiFi_AP(String newPass);
+#### prepareWiFi_AP_PSK(String newPass);
 
 ```c++
 
-void prepareWiFi_AP(String newPass);
+void prepareWiFi_AP_PSK(String newPass);
 ```
 
 Forces change of access point password.
@@ -107,7 +107,7 @@ Tries to connect to the WiFi network with getSSID `newSSID` and password `newPas
 
 The page in the web interface that is connected to the WiFi settings is shown below. For now this is a simple page that:
 * shows the currently connected network
-* allows you to prepareWiFi_forget the current WiFi details
+* allows you to prepareWiFi_STA_forget the current WiFi details
 * allows you to set a new getSSID and password.
 * allows you to set a static IP address.
 

@@ -4,7 +4,7 @@
 
 void OtaUpdateHelper::addScheduler(Scheduler *scheduler) {
 	if (scheduler != nullptr) {
-		loopTask = new Task(
+		tLoop = new Task(
 				0,
 				1,
 				[this]() -> void {
@@ -19,9 +19,9 @@ void OtaUpdateHelper::requestStart(String filenameIn) {
 	status = 254;
 	filename = std::move(filenameIn);
 	requestFlag = true;
-	if (loopTask != nullptr) {
-		loopTask->setIterations(1);
-		loopTask->enable();
+	if (tLoop != nullptr) {
+		tLoop->setIterations(1);
+		tLoop->enable();
 	}
 }
 

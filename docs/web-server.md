@@ -68,9 +68,9 @@ A GET request to this location with the arguments `ssid` and `pass` tries to con
 
 A GET request to this location with the arguments `ssid`, `pass`, `localIP`, `subnetMask` and `gatewayIP` tries to connect to these new WiFi credentials with a static IP address.
 
-#### /api/wifi/prepareWiFi_forget
+#### /api/wifi/prepareWiFi_STA_forget
 
-A request to this URL will forget the stored WiFi details and start a standalone portal.
+A request to this URL will forgetWiFi the stored WiFi details and start a standalone portal.
 
 #### /api/wifi/get
 

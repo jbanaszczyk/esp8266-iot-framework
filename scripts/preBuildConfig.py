@@ -45,7 +45,7 @@ def preBuildConfigFun():
 
     #footers
 
-    h.write("};\n\nstatic constexpr uint32_t configVersion = " + str(binascii.crc32(json.dumps(data).encode())) + "; //generated identifier to compare config with EEPROM\n\n")
+    h.write("};\n\nconstexpr uint32_t configVersion = " + str(binascii.crc32(json.dumps(data).encode())) + "; //generated identifier to compare config with EEPROM\n\n")
     h.write("extern const ConfigData configDefaults;\n")
 
     cpp.write("\n};\n")
