@@ -2,15 +2,15 @@
 #include "WebServer.h"
 
 #if defined(DEBUG_IOT_DASHBOARD) && defined(DEBUG_IOT_PORT)
-#define LOGING_DASH 1
+#define LOGGING_DASH 1
 #define LOG_DASH(...) DEBUG_IOT_PORT.printf_P( "[DASH] " __VA_ARGS__ )
 #else
-#define LOGING_DASH 0
+#define LOGGING_DASH 0
 #define LOG_DASH(...)
 #endif
 
 Dashboard::Dashboard() : sendRepeatInterval(defaultSendRepeatInterval) {
-#if LOGING_DASH
+#if LOGGING_DASH
 	getWebServer()->getWs()->onEvent(onWsEvent);
 #endif
 }
@@ -28,7 +28,7 @@ void Dashboard::send() {
 }
 
 void Dashboard::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *dataIn, size_t len) {
-#if LOGING_DASH
+#if LOGGING_DASH
 	static const char *messages[] = {
 			"WS_EVT_CONNECT",
 			"WS_EVT_DISCONNECT",

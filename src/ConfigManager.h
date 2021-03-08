@@ -12,12 +12,6 @@ class ConfigManager {
 public:
 	class InternalData {
 	public:
-		InternalData(IPAddress localIp, IPAddress subnetMask, IPAddress gatewayIp, IPAddress dnsIp) :
-				localIP(localIp.v4()),
-				subnetMask(subnetMask.v4()),
-				gatewayIP(gatewayIp.v4()),
-				dnsIP(dnsIp.v4()) {}
-
 		InternalData() {
 			localIP = IPAddress();
 			subnetMask = IPAddress();
@@ -45,7 +39,7 @@ private:
 
 	class StoredData {
 		InternalData internalData;
-		ConfigData configData;
+		ConfigData configData{};
 	public:
 		InternalData *getMutableInternalData() { return &internalData; }
 		ConfigData *getMutableConfigData() { return &configData; }
@@ -64,8 +58,8 @@ private:
 	};
 
 	class EepromData {
-		StoredData storedData;
-		ControlData controlData;
+		StoredData storedData{};
+		ControlData controlData{};
 	public:
 		StoredData *getMutableStoredData() { return &storedData; }
 		ControlData *getMutableControlData() { return &controlData; }

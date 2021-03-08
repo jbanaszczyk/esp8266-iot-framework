@@ -17,7 +17,7 @@ private:
 	const unsigned long defaultSendRepeatInterval = 1000;
 	unsigned long sendRepeatInterval = defaultSendRepeatInterval;
 	Task *tLoop = nullptr;
-	DashboardData dashboardData;
+	DashboardData dashboardData{};
 	void send();
 
 public:
