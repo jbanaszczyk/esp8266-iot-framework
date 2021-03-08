@@ -7,9 +7,9 @@
 
 //Access to other classes for GUI functions
 #include "WiFiManager.h"
-#include "configManager.h"
+#include "ConfigManager.h"
 #include "OtaUpdateHelper.h"
-#include "dashboard.h"
+#include "Dashboard.h"
 
 WebServer::WebServer() {
 	//to enable testing and debugging of the interface
