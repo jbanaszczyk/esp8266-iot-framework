@@ -1,40 +1,55 @@
 #include "NTPSync.h"
 
-#include <TZ.h>
 #include <coredecls.h>
-#include <PolledTimeout.h>
 
-void NTPSync::begin(const char *tz, const char *server1, const char *server2, const char *server3) {
-	settimeofday_cb([this]() { synced = true; });
-	configTime(tz, server1, server2, server3);
-}
+NTPSync::NTPSync() : synced(false), startTime(0), lastSyncTime(0), strftimeBufferSize(80) {
 
-void NTPSync::begin(const char *tz) {
-	begin(tz, "0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org");
+	setFormat("%Y.%m.%d %H.%M.%S", 24);
+
+	addSyncCallback(
+			[this]() -> void {
+				time(&lastSyncTime);
+				if (startTime == 0) {
+					startTime = lastSyncTime;
+				}
+				synced = true;
+			}
+	);
+
+	settimeofday_cb([this]() -> void {
+		for (const auto &syncCallback : syncCallbacks) {
+			syncCallback();
+		}
+	});
 }
 
 bool NTPSync::isSynced() const {
 	return synced;
 }
 
-bool NTPSync::waitForSyncResult(unsigned long timeoutLength) const {
-	if (synced) {
-		return true;
-	}
-
-	esp8266::polledTimeout::oneShot timeout(timeoutLength);
-	while (!timeout) {
-		yield();
-		if (synced) {
-			return true;
-		}
-	}
-	return false;
+void NTPSync::setFormat(const char *format, size_t bufferSize) {
+	timeFormat = format;
+	strftimeBufferSize = bufferSize;
 }
 
-void NTPSync::setTime(const char *tz, const char *server1, const char *server2, const char *server3) {
-	configTime(tz, server1, server2, server3);
+std::unique_ptr<char[]> NTPSync::showNow(time_t someTime) {
+	struct tm *info = localtime(&someTime);
+	std::unique_ptr<char[]> buffer(new char[strftimeBufferSize]);
+	strftime(buffer.get(), strftimeBufferSize, timeFormat.c_str(), info);
+	return buffer;
 }
 
+time_t NTPSync::getNow() {
+	time_t result = 0;
+	time(&result);
+	return result;
+}
 
-NTPSync timeSync;
+void NTPSync::addSyncCallback(std::function<void()> cb) {
+	syncCallbacks.push_back(cb);
+}
+
+INTPSync *getNTPSync() {
+	static NTPSync ntpSync{};
+	return &ntpSync;
+}

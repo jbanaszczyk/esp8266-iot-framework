@@ -25,6 +25,6 @@ This method returns true if the time has been set and false if it has not.
 #### getStatus 
 
 ```c++
-bool waitForSyncResult(unsigned long timeoutLength = 10000);
+bool waitForSync(unsigned long timeoutLength = 10000);
 ```
 This method will block until the time has been set or until it times out. If it times out false will be returned. The timeout is in milliseconds and by default is 10 seconds.

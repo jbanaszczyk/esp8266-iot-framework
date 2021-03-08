@@ -37,7 +37,7 @@ void setup() {
 	timeSync.begin(TZ_Europe_Warsaw);
 
 	//Wait for connection
-	timeSync.waitForSyncResult(10000);
+	timeSync.waitForSync(10000);
 
 	showNow();
 	Serial.printf_P("==[ Setup done ]============\n");
