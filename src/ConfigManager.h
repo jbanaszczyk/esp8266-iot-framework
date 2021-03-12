@@ -4,7 +4,6 @@
 #include "generated/config.h"
 #include <TaskSchedulerDeclarations.h>
 #include <EEPROM_Rotate.h>
-//#include <EEPROM.h>
 
 typedef uint8_t configManagerChecksum;
 
@@ -69,14 +68,11 @@ private:
 	};
 
 
-	//  using EEPROMClass:   EepromReservedAreaSize can be 0
 	//  using EEPROM_Rotate: EepromReservedAreaSize should be at least 3
 	const unsigned int EepromReservedAreaSize = 8;
 	const unsigned int EepromRotate_size = 2;
 
 	EEPROM_Rotate eeprom{};
-//	EEPROMClass eeprom{};
-
 	EepromData eepromData{};
 	Task *tLoop = nullptr;
 	bool dirty = false;
