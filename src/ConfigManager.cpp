@@ -1,16 +1,15 @@
-#include <EEPROM.h>
 #include <Arduino.h>
 
 #include "ConfigManager.h"
 
 ConfigManager::ConfigManager() {
-	EEPROM.begin(sizeof(EepromData));
-	EEPROM.get(0, eepromData);
+	eeprom.begin(EepromReservedAreaSize + sizeof(EepromData));
+	eeprom.get(EepromReservedAreaSize, eepromData);
 
 	if (eepromData.getControlData().getVersion() != configVersion || checksum(eepromData.getStoredData()) != eepromData.getControlData().getChecksum()) {
 		Serial.println(PSTR("EEPROM data invalid"));
-		Serial.printf("Version %d %d\n", configVersion, eepromData.getControlData().getVersion());
-		Serial.printf("Checksum %d %d\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
+		Serial.printf("Version: expected %d, was read %d\n", configVersion, eepromData.getControlData().getVersion());
+		Serial.printf("Checksum  expected %d, was read %d\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
 		InternalData internalData{};
 		saveInternalData(&internalData);
 		saveConfigData(&configDefaults);
@@ -35,8 +34,8 @@ void ConfigManager::writeEeprom() {
 	control->setVersion(configVersion);
 	control->setChecksum(checksum(eepromData.getStoredData()));
 
-	EEPROM.put(0, eepromData);
-	EEPROM.commit();
+	eeprom.put(EepromReservedAreaSize, eepromData);
+	eeprom.commit();
 
 	if (configSaveCallback != nullptr) {
 		configSaveCallback();
@@ -67,7 +66,7 @@ void ConfigManager::setDirty() {
 configManagerChecksum ConfigManager::checksumHelper(configManagerChecksum *byteArray, unsigned long length, configManagerChecksum result) {
 	for (decltype(length) counter = 0; counter < length; counter++) {
 		result = hash(result, *byteArray);
-		byteArray ++ ;
+		byteArray++;
 	}
 	return result;
 }
@@ -78,6 +77,7 @@ configManagerChecksum ConfigManager::hash(configManagerChecksum value, configMan
 }
 
 ConfigManager *getConfigManager() {
+
 	static ConfigManager configManager = ConfigManager();
 	return &configManager;
 }

@@ -3,6 +3,8 @@
 #include "IPAddress.h"
 #include "generated/config.h"
 #include <TaskSchedulerDeclarations.h>
+#include <EEPROM_Rotate.h>
+//#include <EEPROM.h>
 
 // FIXME think about uint32_t
 typedef uint8_t configManagerChecksum;
@@ -66,6 +68,13 @@ private:
 		const StoredData &getStoredData() const { return storedData; }
 		const ControlData &getControlData() const { return controlData; }
 	};
+
+
+	//  using EEPROMClass:   EepromReservedAreaSize can be 0
+	//  using EEPROM_Rotate: EepromReservedAreaSize should be at least 3
+	const unsigned int EepromReservedAreaSize = 8;
+	EEPROM_Rotate eeprom{};
+//	EEPROMClass eeprom{};
 
 	EepromData eepromData{};
 	Task *tLoop = nullptr;
