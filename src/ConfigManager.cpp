@@ -3,6 +3,7 @@
 #include "ConfigManager.h"
 
 ConfigManager::ConfigManager() {
+	eeprom.size(EepromRotate_size);
 	eeprom.begin(EepromReservedAreaSize + sizeof(EepromData));
 	eeprom.get(EepromReservedAreaSize, eepromData);
 

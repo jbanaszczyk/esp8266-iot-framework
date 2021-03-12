@@ -72,6 +72,8 @@ private:
 	//  using EEPROMClass:   EepromReservedAreaSize can be 0
 	//  using EEPROM_Rotate: EepromReservedAreaSize should be at least 3
 	const unsigned int EepromReservedAreaSize = 8;
+	const unsigned int EepromRotate_size = 2;
+
 	EEPROM_Rotate eeprom{};
 //	EEPROMClass eeprom{};
 
