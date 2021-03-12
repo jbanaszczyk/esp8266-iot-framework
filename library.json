@@ -27,7 +27,7 @@
             "name": "DNSServer"
         },
         {
-            "name": "EEPROM"
+            "name": "EEPROM_Rotate"
         },
         {
             "name": "LittleFS(esp8266)"
