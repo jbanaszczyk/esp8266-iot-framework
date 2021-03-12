@@ -8,8 +8,8 @@ ConfigManager::ConfigManager() {
 
 	if (eepromData.getControlData().getVersion() != configVersion || checksum(eepromData.getStoredData()) != eepromData.getControlData().getChecksum()) {
 		Serial.println(PSTR("EEPROM data invalid"));
-		Serial.printf("Version: expected %d, was read %d\n", configVersion, eepromData.getControlData().getVersion());
-		Serial.printf("Checksum  expected %d, was read %d\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
+		Serial.printf("Version: expected %#08x, was read %#02x\n", configVersion, eepromData.getControlData().getVersion());
+		Serial.printf("Checksum  expected %#02x, was read %#02x\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
 		InternalData internalData{};
 		saveInternalData(&internalData);
 		saveConfigData(&configDefaults);

@@ -6,7 +6,6 @@
 #include <EEPROM_Rotate.h>
 //#include <EEPROM.h>
 
-// FIXME think about uint32_t
 typedef uint8_t configManagerChecksum;
 
 class ConfigManager {
