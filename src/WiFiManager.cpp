@@ -2,15 +2,10 @@
 #include "WiFiManager.h"
 #include "ConfigManager.h"
 
-#if defined(DEBUG_IOT_WIFI_MANAGER) && defined(DEBUG_IOT_PORT)
-#define LOG_WIFI(...) DEBUG_IOT_PORT.printf_P( "[WIFI] " __VA_ARGS__ )
-#else
-#define LOG_WIFI(...)
-#endif
-
 WiFiManager::WiFiManager(char const *apName) {
 	apMode = false;
 	portalName = (apName != nullptr && apName[0] != '\0') ? apName : "ESP8266";
+	logger->debug.printf("local hostname: %s\n", portalName.c_str());
 
 	ETS_UART_INTR_DISABLE();
 	wifi_station_disconnect();
@@ -23,6 +18,7 @@ WiFiManager::WiFiManager(char const *apName) {
 	ETS_UART_INTR_ENABLE();
 	WiFi.mode(WIFI_STA);
 	WiFi.begin();
+	logger->debug.printf("WiFi begun, ssid:%s\n", WiFi.SSID().c_str());
 }
 
 void WiFiManager::addScheduler(Scheduler *scheduler) {
@@ -48,11 +44,11 @@ void WiFiManager::addScheduler(Scheduler *scheduler) {
 				scheduler,
 				false,
 				[this]() -> bool {
-					LOG_WIFI("%6ld tRedirectDNS start\n", millis());
+					logger->debug.print("RedirectDNS start\n");
 					return true;
 				},
 				[this]() -> void {
-					LOG_WIFI("%6ld tRedirectDNS stop\n", millis());
+					logger->debug.print("RedirectDNS stop\n");
 				}
 		);
 		tInitialConnect = new Task(
@@ -102,7 +98,7 @@ void WiFiManager::addScheduler(Scheduler *scheduler) {
 }
 
 void WiFiManager::onStationModeGotIP(const WiFiEventStationModeGotIP &evt) const {
-	LOG_WIFI("%6ld onStationModeGotIP ssid:%s IP:%s mask:%s gateway:%s\n", millis(), WiFi.SSID().c_str(), evt.ip.toString().c_str(), evt.mask.toString().c_str(), evt.gw.toString().c_str());
+	logger->info.printf("onStationModeGotIP ssid:%s IP:%s mask:%s gateway:%s\n", WiFi.SSID().c_str(), evt.ip.toString().c_str(), evt.mask.toString().c_str(), evt.gw.toString().c_str());
 	tInitialConnect->disable();
 	if (!tChangeWifiTimeOut->isEnabled()) {
 		tApStartStop->restart();
@@ -112,7 +108,7 @@ void WiFiManager::onStationModeGotIP(const WiFiEventStationModeGotIP &evt) const
 }
 
 void WiFiManager::onStationModeDisconnected(const WiFiEventStationModeDisconnected &evt) const {
-	LOG_WIFI("%6ld onStationModeDisconnected ssid %s reason %d\n", millis(), evt.ssid.c_str(), evt.reason);
+	logger->info.printf("onStationModeDisconnected ssid %s reason %d\n", evt.ssid.c_str(), evt.reason);
 	tInitialConnect->disable();
 	tApStartStop->restart();
 }
@@ -128,8 +124,7 @@ void WiFiManager::apStartStop() {
 }
 
 void WiFiManager::apStart() {
-	LOG_WIFI("%6ld startApMode\n", millis());
-
+	logger->debug.print("ApMode start\n");
 	WiFi.mode(static_cast<WiFiMode_t>(WiFi.getMode() | WIFI_STA));
 	bool canReconnect = !WiFi.SSID().isEmpty();
 	WiFi.mode(canReconnect ? WIFI_AP_STA : WIFI_AP);
@@ -147,23 +142,23 @@ void WiFiManager::apStart() {
 
 	apMode = true;
 
-	LOG_WIFI("%6ld Opened AP mode portal SSID: %s IP: %s\n", millis(), WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
+	logger->info.printf("Opened AP mode portal SSID: %s IP: %s\n", WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
 }
 
 void WiFiManager::apStop() {
 	apMode = false;
-	LOG_WIFI("%6ld stopApMode\n", millis());
+	logger->debug.print("ApMode stop\n");
 	WiFi.mode(WIFI_STA);
 	if (tRedirectDNS != nullptr) {
 		tRedirectDNS->disable();
 	}
 	delete dnsServer;
 	dnsServer = nullptr;
-	LOG_WIFI("%6ld Closed AP mode portal\n", millis());
+	logger->info.printf("ApMode closed\n");
 }
 
 void WiFiManager::forgetWiFi() {
-	LOG_WIFI("%6ld forgetWiFi WiFi\n", millis());
+	logger->debug.print("WiFi forget\n");
 	WiFiConfig wiFiConfig{};
 	wiFiConfig.use();
 	wiFiConfig.storeToConfigManager();
@@ -174,19 +169,19 @@ void WiFiManager::forgetWiFi() {
 	WiFi.disconnect(true);
 	WiFi.persistent(false);
 #endif
-	LOG_WIFI("%6ld forgot WiFi\n", millis());
+	logger->info.print("WiFi forgotten\n");
 }
 
 void WiFiManager::connectNewWifiCheck() {
-	LOG_WIFI("%6ld connectNewWifiCheck\n", millis());
+	logger->debug.print("connectNewWifiCheck\n");
 
 	auto *oldWiFiConfig = static_cast<WiFiConfig *>(aScheduler->currentLts());
 	if (WiFi.isConnected()) {
-		LOG_WIFI("%6ld Connected to %s\n", millis(), WiFi.SSID().c_str());
+		logger->debug.printf("Connected to %s\n", WiFi.SSID().c_str());
 		std::unique_ptr<WiFiConfig> currentConfig = std::unique_ptr<WiFiConfig>(WiFiConfig::fromWiFi());
 		currentConfig->storeToConfigManager();
 	} else {
-		LOG_WIFI("%6ld Error connecting to %s\n", millis(), WiFi.SSID().c_str());
+		logger->notice.printf("Error connecting to %s\n", WiFi.SSID().c_str());
 		oldWiFiConfig->use();
 		WiFi.begin(oldWiFiConfig->getSsid(), oldWiFiConfig->getPass());
 	}
@@ -195,7 +190,11 @@ void WiFiManager::connectNewWifiCheck() {
 
 	WiFi.persistent(true);
 	WiFi.setAutoReconnect(true);
-	LOG_WIFI("%6ld connectNewWiFi done, status: %d\n", millis(), WiFi.status());
+	if (WiFi.isConnected()) {
+		logger->info.print("connectNewWiFi done ok\n");
+	} else {
+		logger->notice.printf("connectNewWiFi done, status: %d\n", WiFi.status());
+	}
 }
 
 void WiFiManager::connectNewWifi() {
@@ -205,12 +204,12 @@ void WiFiManager::connectNewWifi() {
 		return;
 	}
 
-	LOG_WIFI("%6ld connectNewWifi\n", millis());
+	logger->debug.print("connectNewWifi\n");
 
 	auto oldConfig = WiFiConfig::fromWiFi();
 
 	if ((WiFi.getMode() & WIFI_STA) != 0 && !wiFiConfig->getSsid().isEmpty() && oldConfig->getSsid() != wiFiConfig->getSsid()) {
-		LOG_WIFI("%6ld WiFi force disconnect\n", millis());
+		logger->debug.print("WiFi force disconnect\n");
 		WiFi.persistent(false);
 		WiFi.setAutoReconnect(false);
 		WiFi.disconnect();
@@ -238,7 +237,7 @@ void WiFiManager::connectNewWifi() {
 }
 
 void WiFiManager::changeApPsk() {
-	LOG_WIFI("%6ld changeApPsk\n", millis());
+	logger->debug.print("changeApPsk\n");
 
 	auto oldMode = WiFi.getMode();
 	if (oldMode & WIFI_AP) {
@@ -250,21 +249,25 @@ void WiFiManager::changeApPsk() {
 	delete newApPsk;
 
 	WiFi.mode(oldMode);
-	LOG_WIFI("%6ld changeApPsk: %s\n", millis(), result ? "Ok" : "Failed");
+	if (result ) {
+		logger->debug.print("changeApPsk: ok\n");
+	}  else {
+		logger->notice.printf("changeApPsk: Failed\n");
+	}
 }
 
 void WiFiManager::prepareWiFi_STA_forget() {
-	LOG_WIFI("%6ld prepareWiFi_STA_forget\n", millis());
+	logger->debug.print("prepareWiFi_STA_forget\n");
 	if (tChangeWifi != nullptr) {
 		tChangeWifi->setLtsPointer(nullptr);
 		tChangeWifi->restart();
 	} else {
-		LOG_WIFI("%6ld WARN: tForgetWifi not set\n", millis());
+		logger->notice.print("WARN: tForgetWifi not set\n");
 	}
 }
 
 void WiFiManager::prepareWiFi_STA(String newSSID, String newPass) {
-	LOG_WIFI("%6ld prepareWiFi_STA ssid:%s\n", millis(), newSSID.c_str());
+	logger->debug.printf("prepareWiFi_STA ssid:%s\n", newSSID.c_str());
 	if (tChangeWifi != nullptr) {
 		auto newConfig = new WiFiConfig(newSSID, newPass);
 		tChangeWifi->setLtsPointer(newConfig);
@@ -273,7 +276,7 @@ void WiFiManager::prepareWiFi_STA(String newSSID, String newPass) {
 }
 
 void WiFiManager::prepareWiFi_STA(String newSSID, String newPass, const String &newLocalIP, const String &newSubnetMask, const String &newGatewayIP, const String &newDnsIP) {
-	LOG_WIFI("%6ld prepareWiFi_STA_Config ssid:%s\n", millis(), newSSID.c_str());
+	logger->debug.printf("prepareWiFi_STA_Config ssid:%s\n", newSSID.c_str());
 	if (tChangeWifi != nullptr) {
 		auto newConfig = new WiFiConfig(newSSID, newPass,
 		                                IPAddress().fromString(newLocalIP),
@@ -286,7 +289,7 @@ void WiFiManager::prepareWiFi_STA(String newSSID, String newPass, const String &
 }
 
 void WiFiManager::prepareWiFi_AP_PSK(String newPass) {
-	LOG_WIFI("%6ld prepareWiFi_AP_PSK\n", millis());
+	logger->debug.print("prepareWiFi_AP_PSK\n");
 	if (tChangeApPsk != nullptr) {
 		auto newPsk = new NewApPsk(newPass);
 		tChangeApPsk->setLtsPointer(newPsk);

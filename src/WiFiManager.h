@@ -6,8 +6,13 @@
 #include <memory>
 #include <utility>
 #include <DNSServer.h>
-#include <TaskSchedulerDeclarations.h>
 #include <ESP8266WiFi.h>
+#include <TaskSchedulerDeclarations.h>
+#include <SimpleLogging.h>
+
+#ifndef DEBUG_IOT_WIFI_MANAGER
+#define DEBUG_IOT_WIFI_MANAGER NOTICE
+#endif
 
 class IWiFiManager {
 public:
@@ -59,6 +64,7 @@ public:
 	String getDnsIP() override;
 
 private:
+	SimpleLogging::Logger *logger = Logging.getLogger("WiFiManager", Logging.DEBUG_IOT_WIFI_MANAGER);
 	String portalName;
 	bool apMode = false;
 	DNSServer *dnsServer = nullptr;
@@ -109,7 +115,7 @@ private:
 		const String &getApPsk() const {return apPsk; }
 	};
 
-	static void forgetWiFi();
+	void forgetWiFi();
 	void connectNewWifi();
 	void connectNewWifiCheck();
 	void changeApPsk();

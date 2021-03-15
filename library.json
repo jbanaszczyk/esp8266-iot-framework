@@ -1,103 +1,155 @@
 {
-    "name": "ESP8266 IoT Framework",
-    "version": "1.7.1",
-    "description": "Framework for IoT projects implementing HTTPS requests, a React web interface, WiFi manager, configuration manager, file manager and OTA updates.",
-    "keywords": "esp8266,react,ota-updates,wifi-manager,https,file-manager",
-    "frameworks": "arduino",
-    "platforms": "espressif8266",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/maakbaas/esp8266-iot-framework.git"
+  "name": "ESP8266 IoT Framework +",
+  "version": "2.0.0",
+  "description": "Framework for IoT projects implementing HTTPS requests, a React web interface, WiFi manager, configuration manager, file manager, OTA updates, logging facilities.",
+  "keywords": "esp8266,react,ota-updates,wifi-manager,https,file-manager,serial-commands,logging",
+  "frameworks": "arduino",
+  "platforms": "espressif8266",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbanaszczyk/esp8266-iot-framework.git"
+  },
+  "authors": [
+    {
+      "name": "Jacek Banaszczyk",
+      "email": "jacek.banaszczyk@gmail.com",
+      "url": "https://github.com/jbanaszczyk",
+      "maintainer": true
     },
-    "dependencies":
-    [
-        {
-            "name": "ESP Async WebServer"
-        },
-        {
-            "name": "ArduinoJson"
-        },
-        {
-            "name": "ESP8266WiFi"
-        },
-        {
-            "name": "ESP8266HTTPClient"
-        },
-        {
-            "name": "DNSServer"
-        },
-        {
-            "name": "EEPROM_Rotate"
-        },
-        {
-            "name": "LittleFS(esp8266)"
-        }
-    ],
-    "build": {
-        "extraScript": "scripts/preBuild.py",
-        "libArchive": false
+    {
+      "url": "https://github.com/maakbaas"
     },
-    "examples": [       
-        {
-            "name": "helloWorld",
-            "base": "examples/helloWorld",
-            "files": [
-                "helloWorld.cpp"
-            ]
-        },
-        {
-            "name": "fetch",
-            "base": "examples/fetch",
-            "files": [
-                "fetchExample.cpp"
-            ]
-        },
-        {
-            "name": "configManager",
-            "base": "examples/configManager",
-            "files": [
-                "configManagerExample.cpp"
-            ]
-        },
-        {
-            "name": "timeSync",
-            "base": "examples/timeSync",
-            "files": [
-                "timeSyncExample.cpp"
-            ]
-        },
-        {
-            "name": "dashboard",
-            "base": "examples/dashboard",
-            "files": [
-                "dashboardExample.cpp"
-            ]
-        }
-    ],
-    "export": {
-        "exclude": [
-            "node_modules",
-            ".vscode",
-            "scripts/__pycache__"
-        ],
-        "include": [
-            "*",
-            ".*",
-            "*.*",
-            ".*.*",
-            "src/*.*",
-            "src/generated/*.*",
-            "scripts/*.*",
-            "gui/*.*",
-            "gui/js/*.*",
-            "gui/js/comp/*.*",
-            "gui/js/functions/*.*",
-            "gui/js/lang/*.*",
-            "examples/configManager/*.*",
-            "examples/fetch/*.*",
-            "examples/helloWorld/*.*",
-            "examples/timeSync/*.*",
-            "examples/dashboard/*.*"
-        ]
+    {
+      "name": "Pedro Tiago Pereira",
+      "email": "tiago.private@gmail.com",
+      "url": "https://github.com/ppedro74"
+    },
+    {
+      "name": "Jan Losinski",
+      "email": "losinski@wh2.tu-dresden.de",
+      "url": "https://github.com/janLo"
     }
+  ],
+  "dependencies": [
+    {
+      "name": "ESP Async WebServer"
+    },
+    {
+      "name": "ArduinoJson"
+    },
+    {
+      "name": "ESP8266WiFi"
+    },
+    {
+      "name": "ESP8266HTTPClient"
+    },
+    {
+      "name": "DNSServer"
+    },
+    {
+      "name": "EEPROM_Rotate"
+    },
+    {
+      "name": "LittleFS(esp8266)"
+    }
+  ],
+  "build": {
+    "extraScript": "scripts/preBuild.py",
+    "libArchive": false
+  },
+  "examples": [
+    {
+      "name": "configManagerExample.cpp",
+      "base": "examples/configManager",
+      "files": [
+        "configManagerExample.cpp"
+      ]
+    },
+    {
+      "name": "dashboardExample.cpp",
+      "base": "examples/dashboard",
+      "files": [
+        "dashboardExample.cpp"
+      ]
+    },
+    {
+      "name": "HttpRequestExample.cpp",
+      "base": "examples/fetch",
+      "files": [
+        "HttpRequestExample.cpp"
+      ]
+    },
+    {
+      "name": "helloWorld.cpp",
+      "base": "examples/helloWorld",
+      "files": [
+        "helloWorld.cpp"
+      ]
+    },
+    {
+      "name": "serialCommandsCheckMemoryLeak.cpp",
+      "base": "examples/serialCommandsCheckMemoryLeak",
+      "files": [
+        "serialCommandsCheckMemoryLeak.cpp"
+      ]
+    },
+    {
+      "name": "serialCommandsFull.cpp",
+      "base": "examples/serialCommandsFull",
+      "files": [
+        "serialCommandsFull.cpp"
+      ]
+    },
+    {
+      "name": "serialCommandsSimple.cpp",
+      "base": "examples/serialCommandsSimple",
+      "files": [
+        "serialCommandsSimple.cpp"
+      ]
+    },
+    {
+      "name": "simpleLogging.cpp",
+      "base": "examples/simpleLogging",
+      "files": [
+        "simpleLogging.cpp"
+      ]
+    },
+    {
+      "name": "timeSyncExample.cpp",
+      "base": "examples/timeSync",
+      "files": [
+        "timeSyncExample.cpp"
+      ]
+    }
+  ],
+  "export": {
+    "exclude": [
+      "node_modules",
+      ".vscode",
+      "scripts/__pycache__"
+    ],
+    "include": [
+      "*",
+      ".*",
+      "*.*",
+      ".*.*",
+      "src/*.*",
+      "src/generated/*.*",
+      "scripts/*.*",
+      "gui/*.*",
+      "gui/js/*.*",
+      "gui/js/comp/*.*",
+      "gui/js/functions/*.*",
+      "gui/js/lang/*.*",
+      "examples/configManager/*.*",
+      "examples/dashboard/*.*",
+      "examples/fetch/*.*",
+      "examples/helloWorld/*.*",
+      "examples/serialCommandsCheckMemoryLeak/*.*",
+      "examples/serialCommandsFull/*.*",
+      "examples/serialCommandsSimple/*.*",
+      "examples/simpleLogging/*.*",
+      "examples/timeSync/*.*"
+    ]
+  }
 }
