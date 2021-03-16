@@ -44,16 +44,11 @@ void WiFiManager::addScheduler(Scheduler *scheduler) {
 				scheduler,
 				false,
 				[this]() -> bool {
-
-					logger->debug.print("RedirectDNS start\n");
-
-					//RAM:   [=====     ]  48.9% (used 40072 bytes from 81920 bytes)
-//Flash: [======    ]  58.8% (used 613660 bytes from 1044464 bytes)
-
+					logger->debug.printf_P(PSTR("RedirectDNS start\n"));
 					return true;
 				},
 				[this]() -> void {
-					logger->debug.print("RedirectDNS stop\n");
+					logger->debug.printf_P(PSTR("RedirectDNS stop\n"));
 				}
 		);
 		tInitialConnect = new Task(
@@ -129,7 +124,7 @@ void WiFiManager::apStartStop() {
 }
 
 void WiFiManager::apStart() {
-	logger->debug.print("ApMode start\n");
+	logger->debug.printf_P(PSTR("ApMode start\n"));
 	WiFi.mode(static_cast<WiFiMode_t>(WiFi.getMode() | WIFI_STA));
 	bool canReconnect = !WiFi.SSID().isEmpty();
 	WiFi.mode(canReconnect ? WIFI_AP_STA : WIFI_AP);
@@ -152,18 +147,18 @@ void WiFiManager::apStart() {
 
 void WiFiManager::apStop() {
 	apMode = false;
-	logger->debug.print("ApMode stop\n");
+	logger->debug.printf_P(PSTR("ApMode stop\n"));
 	WiFi.mode(WIFI_STA);
 	if (tRedirectDNS != nullptr) {
 		tRedirectDNS->disable();
 	}
 	delete dnsServer;
 	dnsServer = nullptr;
-	logger->info.printf("ApMode closed\n");
+	logger->info.printf_P(PSTR("ApMode closed\n"));
 }
 
 void WiFiManager::forgetWiFi() {
-	logger->debug.print("WiFi forget\n");
+	logger->debug.printf_P(PSTR("WiFi forget\n"));
 	WiFiConfig wiFiConfig{};
 	wiFiConfig.use();
 	wiFiConfig.storeToConfigManager();
@@ -174,11 +169,11 @@ void WiFiManager::forgetWiFi() {
 	WiFi.disconnect(true);
 	WiFi.persistent(false);
 #endif
-	logger->info.print("WiFi forgotten\n");
+	logger->info.printf_P(PSTR("WiFi forgotten\n"));
 }
 
 void WiFiManager::connectNewWifiCheck() {
-	logger->debug.print("connectNewWifiCheck\n");
+	logger->debug.printf_P(PSTR("connectNewWifiCheck\n"));
 
 	auto *oldWiFiConfig = static_cast<WiFiConfig *>(aScheduler->currentLts());
 	if (WiFi.isConnected()) {
@@ -196,7 +191,7 @@ void WiFiManager::connectNewWifiCheck() {
 	WiFi.persistent(true);
 	WiFi.setAutoReconnect(true);
 	if (WiFi.isConnected()) {
-		logger->info.print("connectNewWiFi done ok\n");
+		logger->info.printf_P(PSTR("connectNewWiFi done ok\n"));
 	} else {
 		logger->notice.printf_P(PSTR("connectNewWiFi done, status: %d\n"), WiFi.status());
 	}
@@ -209,12 +204,12 @@ void WiFiManager::connectNewWifi() {
 		return;
 	}
 
-	logger->debug.print("connectNewWifi\n");
+	logger->debug.printf_P(PSTR("connectNewWifi\n"));
 
 	auto oldConfig = WiFiConfig::fromWiFi();
 
 	if ((WiFi.getMode() & WIFI_STA) != 0 && !wiFiConfig->getSsid().isEmpty() && oldConfig->getSsid() != wiFiConfig->getSsid()) {
-		logger->debug.print("WiFi force disconnect\n");
+		logger->debug.printf_P(PSTR("WiFi force disconnect\n"));
 		WiFi.persistent(false);
 		WiFi.setAutoReconnect(false);
 		WiFi.disconnect();
@@ -242,7 +237,7 @@ void WiFiManager::connectNewWifi() {
 }
 
 void WiFiManager::changeApPsk() {
-	logger->debug.print("changeApPsk\n");
+	logger->debug.printf_P(PSTR("changeApPsk\n"));
 
 	auto oldMode = WiFi.getMode();
 	if (oldMode & WIFI_AP) {
@@ -255,19 +250,19 @@ void WiFiManager::changeApPsk() {
 
 	WiFi.mode(oldMode);
 	if (result ) {
-		logger->debug.print("changeApPsk: ok\n");
+		logger->debug.printf_P(PSTR("changeApPsk: ok\n"));
 	}  else {
-		logger->notice.printf("changeApPsk: Failed\n");
+		logger->notice.printf_P(PSTR("changeApPsk: Failed\n"));
 	}
 }
 
 void WiFiManager::prepareWiFi_STA_forget() {
-	logger->debug.print("prepareWiFi_STA_forget\n");
+	logger->debug.printf_P(PSTR("prepareWiFi_STA_forget\n"));
 	if (tChangeWifi != nullptr) {
 		tChangeWifi->setLtsPointer(nullptr);
 		tChangeWifi->restart();
 	} else {
-		logger->notice.print("WARN: tForgetWifi not set\n");
+		logger->notice.printf_P(PSTR("WARN: tForgetWifi not set\n"));
 	}
 }
 
@@ -294,7 +289,7 @@ void WiFiManager::prepareWiFi_STA(String newSSID, String newPass, const String &
 }
 
 void WiFiManager::prepareWiFi_AP_PSK(String newPass) {
-	logger->debug.print("prepareWiFi_AP_PSK\n");
+	logger->debug.printf_P(PSTR("prepareWiFi_AP_PSK\n"));
 	if (tChangeApPsk != nullptr) {
 		auto newPsk = new NewApPsk(newPass);
 		tChangeApPsk->setLtsPointer(newPsk);

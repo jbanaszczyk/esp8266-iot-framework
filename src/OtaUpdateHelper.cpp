@@ -37,23 +37,23 @@ void OtaUpdateHelper::flash() {
 	File file = LittleFS.open(*fileName, "r");
 
 	if (!file) {
-		logger->error.printf("Failed to open file for reading: %s\n",fileName->c_str());
+		logger->error.printf_P(PSTR("Failed to open file for reading: %s\n"),fileName->c_str());
 		answer = false;
 	} else {
-		logger->info.print("Starting update..\n");
+		logger->info.printf_P(PSTR("Starting update..\n"));
 
 		size_t fileSize = file.size();
 
 		if (!Update.begin(fileSize)) {
-			logger->error.print("Not enough file system space\n");
+			logger->error.printf_P(PSTR("Not enough file system space\n"));
 		} else {
 			Update.writeStream(file);
 
 			if (Update.end()) {
-				logger->error.print("Successful update\n");
+				logger->error.printf_P(PSTR("Successful update\n"));
 				answer = true;
 			} else {
-				logger->error.printf("Error: %s\n",String(Update.getError()).c_str());
+				logger->error.printf_P(PSTR("Error: %s\n"),String(Update.getError()).c_str());
 			}
 		}
 		file.close();

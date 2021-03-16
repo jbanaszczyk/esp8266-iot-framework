@@ -9,9 +9,9 @@ ConfigManager::ConfigManager() {
 	eeprom.get(EepromReservedAreaSize, eepromData);
 
 	if (eepromData.getControlData().getVersion() != configVersion || checksum(eepromData.getStoredData()) != eepromData.getControlData().getChecksum()) {
-		logger->notice.print("EEPROM data invalid");
-		logger->debug.printf("Version: expected %#08x, was read %#02x\n", configVersion, eepromData.getControlData().getVersion());
-		logger->debug.printf("Checksum  expected %#02x, was read %#02x\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
+		logger->notice.printf_P(PSTR(("EEPROM data invalid\n")));
+		logger->debug.printf_P(PSTR("Version: expected %#08x, was read %#02x\n"), configVersion, eepromData.getControlData().getVersion());
+		logger->debug.printf_P(PSTR("Checksum  expected %#02x, was read %#02x\n"), eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
 		InternalData internalData{};
 		saveInternalData(&internalData);
 		saveConfigData(&configDefaults);
@@ -29,7 +29,7 @@ void ConfigManager::saveConfigData(const ConfigData *configData) {
 }
 
 void ConfigManager::writeEeprom() {
-	logger->info.printf("Write %zu bytes\n", sizeof(eepromData));
+	logger->info.printf_P(PSTR("Write %zu bytes\n"), sizeof(eepromData));
 	dirty = false;
 
 	auto control = getMutableEepromData()->getMutableControlData();

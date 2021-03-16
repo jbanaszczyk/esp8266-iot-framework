@@ -77,7 +77,7 @@ SerialCommands::Status SerialCommands::ReadSerial() {
 		if (bufferPosition < bufferLength) {
 			buffer[bufferPosition++] = static_cast<char>(ch);
 		} else {
-			logger->notice.print("Buffer full\n");
+			logger->notice.printf_P(PSTR("Buffer full\n"));
 			doEcho("!!!\r");
 			ClearBuffer();
 			return Status::BufferFull;
@@ -111,7 +111,7 @@ void SerialCommands::doEcho(int ch) const {
 	if (echo && stream != nullptr) {
 		switch (ch) {
 			case '\0': {
-				stream->print("\n");
+				stream->printf_P(PSTR("\n"));
 				break;
 			}
 			case '\e': {
@@ -165,7 +165,7 @@ const char *SerialCommands::Next() {
 SerialCommands::~SerialCommands() {
 	unsetStream();
 	if (ownedBuffer) {
-		logger->debug.print("Disposing command buffer\n");
+		logger->debug.printf_P(PSTR("Disposing command buffer\n"));
 		delete[] buffer;
 	}
 }
