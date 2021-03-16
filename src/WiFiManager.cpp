@@ -5,7 +5,7 @@
 WiFiManager::WiFiManager(char const *apName) {
 	apMode = false;
 	portalName = (apName != nullptr && apName[0] != '\0') ? apName : "ESP8266";
-	logger->debug.printf("local hostname: %s\n", portalName.c_str());
+	logger->debug.printf_P(PSTR("local hostname: %s\n"), portalName.c_str());
 
 	ETS_UART_INTR_DISABLE();
 	wifi_station_disconnect();
@@ -18,7 +18,7 @@ WiFiManager::WiFiManager(char const *apName) {
 	ETS_UART_INTR_ENABLE();
 	WiFi.mode(WIFI_STA);
 	WiFi.begin();
-	logger->debug.printf("WiFi begun, ssid:%s\n", WiFi.SSID().c_str());
+	logger->debug.printf_P(PSTR("WiFi begun, ssid:%s\n"), WiFi.SSID().c_str());
 }
 
 void WiFiManager::addScheduler(Scheduler *scheduler) {
@@ -44,7 +44,12 @@ void WiFiManager::addScheduler(Scheduler *scheduler) {
 				scheduler,
 				false,
 				[this]() -> bool {
+
 					logger->debug.print("RedirectDNS start\n");
+
+					//RAM:   [=====     ]  48.9% (used 40072 bytes from 81920 bytes)
+//Flash: [======    ]  58.8% (used 613660 bytes from 1044464 bytes)
+
 					return true;
 				},
 				[this]() -> void {
@@ -98,7 +103,7 @@ void WiFiManager::addScheduler(Scheduler *scheduler) {
 }
 
 void WiFiManager::onStationModeGotIP(const WiFiEventStationModeGotIP &evt) const {
-	logger->info.printf("onStationModeGotIP ssid:%s IP:%s mask:%s gateway:%s\n", WiFi.SSID().c_str(), evt.ip.toString().c_str(), evt.mask.toString().c_str(), evt.gw.toString().c_str());
+	logger->info.printf_P(PSTR("onStationModeGotIP ssid:%s IP:%s mask:%s gateway:%s\n"), WiFi.SSID().c_str(), evt.ip.toString().c_str(), evt.mask.toString().c_str(), evt.gw.toString().c_str());
 	tInitialConnect->disable();
 	if (!tChangeWifiTimeOut->isEnabled()) {
 		tApStartStop->restart();
@@ -108,7 +113,7 @@ void WiFiManager::onStationModeGotIP(const WiFiEventStationModeGotIP &evt) const
 }
 
 void WiFiManager::onStationModeDisconnected(const WiFiEventStationModeDisconnected &evt) const {
-	logger->info.printf("onStationModeDisconnected ssid %s reason %d\n", evt.ssid.c_str(), evt.reason);
+	logger->info.printf_P(PSTR("onStationModeDisconnected ssid %s reason %d\n"), evt.ssid.c_str(), evt.reason);
 	tInitialConnect->disable();
 	tApStartStop->restart();
 }
@@ -142,7 +147,7 @@ void WiFiManager::apStart() {
 
 	apMode = true;
 
-	logger->info.printf("Opened AP mode portal SSID: %s IP: %s\n", WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
+	logger->info.printf_P(PSTR("Opened AP mode portal SSID: %s IP: %s\n"), WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
 }
 
 void WiFiManager::apStop() {
@@ -177,11 +182,11 @@ void WiFiManager::connectNewWifiCheck() {
 
 	auto *oldWiFiConfig = static_cast<WiFiConfig *>(aScheduler->currentLts());
 	if (WiFi.isConnected()) {
-		logger->debug.printf("Connected to %s\n", WiFi.SSID().c_str());
+		logger->debug.printf_P(PSTR("Connected to %s\n"), WiFi.SSID().c_str());
 		std::unique_ptr<WiFiConfig> currentConfig = std::unique_ptr<WiFiConfig>(WiFiConfig::fromWiFi());
 		currentConfig->storeToConfigManager();
 	} else {
-		logger->notice.printf("Error connecting to %s\n", WiFi.SSID().c_str());
+		logger->notice.printf_P(PSTR("Error connecting to %s\n"), WiFi.SSID().c_str());
 		oldWiFiConfig->use();
 		WiFi.begin(oldWiFiConfig->getSsid(), oldWiFiConfig->getPass());
 	}
@@ -193,7 +198,7 @@ void WiFiManager::connectNewWifiCheck() {
 	if (WiFi.isConnected()) {
 		logger->info.print("connectNewWiFi done ok\n");
 	} else {
-		logger->notice.printf("connectNewWiFi done, status: %d\n", WiFi.status());
+		logger->notice.printf_P(PSTR("connectNewWiFi done, status: %d\n"), WiFi.status());
 	}
 }
 
@@ -267,7 +272,7 @@ void WiFiManager::prepareWiFi_STA_forget() {
 }
 
 void WiFiManager::prepareWiFi_STA(String newSSID, String newPass) {
-	logger->debug.printf("prepareWiFi_STA ssid:%s\n", newSSID.c_str());
+	logger->debug.printf_P(PSTR("prepareWiFi_STA ssid:%s\n"), newSSID.c_str());
 	if (tChangeWifi != nullptr) {
 		auto newConfig = new WiFiConfig(newSSID, newPass);
 		tChangeWifi->setLtsPointer(newConfig);
@@ -276,7 +281,7 @@ void WiFiManager::prepareWiFi_STA(String newSSID, String newPass) {
 }
 
 void WiFiManager::prepareWiFi_STA(String newSSID, String newPass, const String &newLocalIP, const String &newSubnetMask, const String &newGatewayIP, const String &newDnsIP) {
-	logger->debug.printf("prepareWiFi_STA_Config ssid:%s\n", newSSID.c_str());
+	logger->debug.printf_P(PSTR("prepareWiFi_STA_Config ssid:%s\n"), newSSID.c_str());
 	if (tChangeWifi != nullptr) {
 		auto newConfig = new WiFiConfig(newSSID, newPass,
 		                                IPAddress().fromString(newLocalIP),

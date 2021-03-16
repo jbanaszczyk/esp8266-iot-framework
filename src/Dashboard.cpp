@@ -1,19 +1,5 @@
 #include "Dashboard.h"
-#include "WebServer.h"
-
-#if defined(DEBUG_IOT_DASHBOARD) && defined(DEBUG_IOT_PORT)
-#define LOGGING_DASH 1
-#define LOG_DASH(...) DEBUG_IOT_PORT.printf_P( "[DASH] " __VA_ARGS__ )
-#else
-#define LOGGING_DASH 0
-#define LOG_DASH(...)
-#endif
-
-Dashboard::Dashboard() : sendRepeatInterval(defaultSendRepeatInterval) {
-#if LOGGING_DASH
-	getWebServer()->getWs()->onEvent(onWsEvent);
-#endif
-}
+#include <WebServer.h>
 
 void Dashboard::send() {
 	auto now = millis();
@@ -25,20 +11,6 @@ void Dashboard::send() {
 	memcpy(buffer + sizeof(now), reinterpret_cast<uint8_t *>(&dashboardData), sizeof(dashboardData));
 
 	getWebServer()->getWs()->binaryAll(buffer, sizeof(buffer));
-}
-
-void Dashboard::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *dataIn, size_t len) {
-#if LOGGING_DASH
-	static const char *messages[] = {
-			"WS_EVT_CONNECT",
-			"WS_EVT_DISCONNECT",
-			"WS_EVT_PONG",
-			"WS_EVT_ERROR",
-			"WS_EVT_DATA"
-	};
-	const char *message = type >= 0 && type <= WS_EVT_DATA ? messages[type] : "WS_EVT_???";
-	LOG_DASH("%s\n", message);
-#endif
 }
 
 void Dashboard::addScheduler(Scheduler *scheduler) {

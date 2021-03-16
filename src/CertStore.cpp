@@ -45,7 +45,7 @@ namespace BearSSL {
 				return trust_anchor;
 			}
 		}
-
+		LOG_CERT("Certificate not found\n");
 		return nullptr;
 	}
 

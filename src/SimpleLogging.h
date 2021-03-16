@@ -65,7 +65,6 @@ public:
 		LogTarget info{INFO, this, logging};
 		LogTarget debug{DEBUG, this, logging};
 		LogTarget trace{TRACE, this, logging};
-		LogTarget nolog{NOLOG, this, logging};
 	};
 
 	Logger *getLogger(const char *tag, Level minimumLevel);
@@ -108,7 +107,7 @@ private:
 	bool gotCRLF = true;
 	uint8_t allHandlersMask = 0;
 
-	static const int timeStringSize = 30;
+	static const int timeStringSize = 25;
 
 	static const char *const timeFormat;
 };

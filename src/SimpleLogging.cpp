@@ -19,7 +19,7 @@ size_t SimpleLogging::Logger::LogTarget::lazyLog(const std::function<const char 
 	       : 0;
 }
 
-const char *const SimpleLogging::timeFormat = "%Y.%m.%d %H.%M.%S ";
+const char *const SimpleLogging::timeFormat = "%Y.%m.%d %H.%M.%S";
 
 size_t SimpleLogging::log(SimpleLogging::Level level, const String &tag, const uint8_t *buffer, size_t size) {
 	if ((allHandlersMask & level) == 0) {
@@ -38,10 +38,20 @@ size_t SimpleLogging::log(SimpleLogging::Level level, const String &tag, const u
 
 	if (gotCRLF) {
 		levelName = levelToPrefix(level);
+
+		auto milliSeconds = millis();
 		time_t now = 0;
 		time(&now);
+
+		auto millisCheck = millis();
+		if ((milliSeconds / 1000) != (millisCheck / 1000)) {
+			milliSeconds = millis();
+			time(&now);
+		}
+
 		struct tm *info = localtime(&now);
 		strftime(nowString, sizeof(nowString), timeFormat, info);
+		snprintf_P(&(nowString[strlen(nowString)]), sizeof(nowString) - strlen(nowString), PSTR(":%03ld "), milliSeconds % 1000);
 	}
 
 	for (auto &handler : handlers) {
@@ -51,7 +61,7 @@ size_t SimpleLogging::log(SimpleLogging::Level level, const String &tag, const u
 				handler.stream.write(levelName.c_str(), levelName.length());
 				handler.stream.write(' ');
 				handler.stream.write(tag.c_str(), tag.length());
-				handler.stream.write(' ');
+				handler.stream.write(PSTR(": "));
 			}
 			handler.stream.write(buffer, size);
 		}

@@ -1,7 +1,7 @@
 
 #include "SerialCommands.h"
 
-std::_List_iterator<std::unique_ptr<SerialCommands::SerialCommand>> SerialCommands::findCommand(std::list<std::unique_ptr<SerialCommands:: SerialCommand>> *commandsList, const String &commandName, bool caseSensitive) {
+std::_List_iterator<std::unique_ptr<SerialCommands::SerialCommand>> SerialCommands::findCommand(std::list<std::unique_ptr<SerialCommands::SerialCommand>> *commandsList, const String &commandName, bool caseSensitive) {
 	return std::find_if(
 			std::begin(*commandsList),
 			std::end(*commandsList),
@@ -9,7 +9,7 @@ std::_List_iterator<std::unique_ptr<SerialCommands::SerialCommand>> SerialComman
 }
 
 bool SerialCommands::AddCommand(SerialCommand *command) {
-	logger->debug.printf("Adding cmd=[%s] %s\n", command->command.c_str(), command->oneKey ? ("as one-key") : "");
+	logger->debug.printf_P(PSTR("Adding cmd=[%s] %s\n"), command->command.c_str(), command->oneKey ? ("as one-key") : "");
 	auto *selectedCommands = command->oneKey ? &oneKeyCommands : &commands;
 	selectedCommands->push_back(std::unique_ptr<SerialCommand>(new SerialCommand(*command)));
 	delete command;
@@ -33,11 +33,11 @@ SerialCommands::Status SerialCommands::ReadSerial() {
 
 	while (stream->available() > 0) {
 		int ch = stream->read();
-		logger->debug.printf("Read: bufPos=%zu bufLen=%zu", bufferPosition, bufferLength);
+		logger->debug.printf_P(PSTR("Read: bufPos=%zu bufLen=%zu"), bufferPosition, bufferLength);
 		if (ch < ' ') {
-			logger->debug.printf(" code=#%d", ch);
+			logger->debug.printf(PSTR(" code=#%d"), ch);
 		} else {
-			logger->debug.printf(" ascii=[%c]", static_cast<char>(ch));
+			logger->debug.printf_P(PSTR(" ascii=[%c]"), static_cast<char>(ch));
 		}
 		logger->debug.println();
 		if (ch <= 0) {
@@ -64,11 +64,11 @@ SerialCommands::Status SerialCommands::ReadSerial() {
 			return Status::Success;
 		}
 
-		if (bufferPosition == 0 && checkOneKeyCmd(static_cast<char>(ch), caseSensitive)) {
+		if ((bufferPosition == 0) && checkOneKeyCmd(static_cast<char>(ch), caseSensitive)) {
 			return Status::Success;
 		}
 
-		if (ch == ' ' && bufferPosition == 0) {
+		if ((ch == ' ') && (bufferPosition == 0)) {
 			continue;
 		}
 
@@ -84,12 +84,12 @@ SerialCommands::Status SerialCommands::ReadSerial() {
 		}
 
 		if (ch == '\0') {
-			logger->debug.printf("Checking command [%s]\n", buffer);
+			logger->debug.printf_P(PSTR("Checking command [%s]\n"), buffer);
 			char *command = strtok_r(buffer, delimiter.c_str(), &lastToken);
 			if (command != nullptr) {
 				auto found = findCommand(&commands, command, caseSensitive);
 				if (found != commands.end()) {
-					logger->debug.printf("Found command [%s]\n", command);
+					logger->debug.printf_P(PSTR("Found command [%s]\n"), command);
 					found->get()->func(this);
 				} else if (defaultHandler != nullptr) {
 					(*defaultHandler)(this, command);
@@ -141,14 +141,14 @@ int SerialCommands::transpose(int ch) {
 }
 
 bool SerialCommands::checkOneKeyCmd(int ch, bool caseSensitive) {
-	logger->debug.printf("Checking oneKey command [%c]\n", ch);
+	logger->debug.printf_P(PSTR("Checking oneKey command [%c]\n"), ch);
 	char cmd[] = " ";
 	cmd[0] = static_cast<char>(ch);
 	auto found = findCommand(&oneKeyCommands, cmd, caseSensitive);
 	if (found == oneKeyCommands.end()) {
 		return false;
 	}
-	logger->debug.printf("Found oneKey command [%s]\n", cmd);
+	logger->debug.printf_P(PSTR("Found oneKey command [%s]\n"), cmd);
 	found->get()->func(this);
 	return true;
 }
@@ -173,17 +173,17 @@ SerialCommands::~SerialCommands() {
 void SerialCommands::cmd_unrecognized(SerialCommands *sender, const char *cmd) {
 	auto stream = sender->getStream();
 	if (stream != nullptr) {
-		stream->printf("Unrecognized command [%s]\n", cmd);
+		stream->printf_P(PSTR("Unrecognized command [%s]\n"), cmd);
 		decltype(sender->Next()) argument;
 		while ((argument = sender->Next()) != nullptr) {
-			stream->printf("\targument: [%s]\n", argument);
+			stream->printf_P(PSTR("\targument: [%s]\n"), argument);
 		}
 	}
 }
 
 void SerialCommands::printHelpHelper(std::list<std::unique_ptr<SerialCommand>> &commandsList, const char *title, bool oneKeys) const {
 	if (stream != nullptr) {
-		stream->printf("%s:\n", title);
+		stream->printf_P(PSTR("%s:\n"), title);
 		String templateFull = oneKeys ? keyCommandTemplateFull : commandTemplateFull;
 		String templatePartial = oneKeys ? keyCommandTemplatePartial : commandTemplatePartial;
 		for (auto &it : commandsList) {
@@ -196,10 +196,16 @@ void SerialCommands::printHelpHelper(std::list<std::unique_ptr<SerialCommand>> &
 			String selectedTemplate = (description != nullptr && description[0] != '\0') ? templateFull : templatePartial;
 			selectedTemplate.replace("{command}", command);
 			selectedTemplate.replace("{description}", description);
-			stream->printf("%s\n", selectedTemplate.c_str());
+			stream->println(selectedTemplate.c_str());
 		}
 	}
 }
+
+const char *const SerialCommands::commandTemplatePartial = "\t{command}";
+const char *const SerialCommands::commandTemplateFull = "\t{command}\n\t\t{description}";
+const char *const SerialCommands::keyCommandTemplatePartial = "\t{command}";
+const char *const SerialCommands::keyCommandTemplateFull = "\t{command}\t{description}";
+const char *const SerialCommands::commandTemplateNewLineReplacement = "\n\t\t";
 
 void SerialCommands::printHelp() {
 	if (stream != nullptr) {

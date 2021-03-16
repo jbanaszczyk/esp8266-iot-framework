@@ -3,14 +3,15 @@
 #include "ConfigManager.h"
 
 ConfigManager::ConfigManager() {
-	eeprom.size(EepromRotate_size);
+	logger = Logging.getLogger("Configuration", Logging.DEBUG_IOT_CONFIG_MANAGER);
+	eeprom.size(static_cast<uint8_t>( EepromRotate_size));
 	eeprom.begin(EepromReservedAreaSize + sizeof(EepromData));
 	eeprom.get(EepromReservedAreaSize, eepromData);
 
 	if (eepromData.getControlData().getVersion() != configVersion || checksum(eepromData.getStoredData()) != eepromData.getControlData().getChecksum()) {
-		Serial.println(PSTR("EEPROM data invalid"));
-		Serial.printf("Version: expected %#08x, was read %#02x\n", configVersion, eepromData.getControlData().getVersion());
-		Serial.printf("Checksum  expected %#02x, was read %#02x\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
+		logger->notice.print("EEPROM data invalid");
+		logger->debug.printf("Version: expected %#08x, was read %#02x\n", configVersion, eepromData.getControlData().getVersion());
+		logger->debug.printf("Checksum  expected %#02x, was read %#02x\n", eepromData.getControlData().getChecksum(), checksum(eepromData.getStoredData()));
 		InternalData internalData{};
 		saveInternalData(&internalData);
 		saveConfigData(&configDefaults);
@@ -28,7 +29,7 @@ void ConfigManager::saveConfigData(const ConfigData *configData) {
 }
 
 void ConfigManager::writeEeprom() {
-	Serial.printf("[EEPROM] Write %zu bytes\n", sizeof(eepromData));
+	logger->info.printf("Write %zu bytes\n", sizeof(eepromData));
 	dirty = false;
 
 	auto control = getMutableEepromData()->getMutableControlData();

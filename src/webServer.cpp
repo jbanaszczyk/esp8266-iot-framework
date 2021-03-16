@@ -1,4 +1,4 @@
-#include "WebServer.h"
+#include "webServer.h"
 #include "ArduinoJson.h"
 #include "LittleFS.h"
 
@@ -10,6 +10,12 @@
 #include "ConfigManager.h"
 #include "OtaUpdateHelper.h"
 #include "Dashboard.h"
+
+#include <SimpleLogging.h>
+
+#ifndef DEBUG_IOT_OTA
+#define DEBUG_IOT_OTA NOTICE
+#endif
 
 WebServer::WebServer() {
 	//to enable testing and debugging of the interface
@@ -173,8 +179,8 @@ void WebServer::handleFileUpload(AsyncWebServerRequest *request, String filename
 	static File fsUploadFile;
 
 	if (!index) {
-		Serial.println(PSTR("Start file upload"));
-		Serial.println(filename);
+		auto logger = Logging.getLogger("OtaUpdates", Logging.DEBUG_IOT_OTA);
+		logger->info.printf_P(PSTR("Start file upload: %s\n"), filename.c_str());
 
 		if (!filename.startsWith("/"))
 			filename = "/" + filename;

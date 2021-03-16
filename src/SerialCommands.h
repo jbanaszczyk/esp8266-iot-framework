@@ -114,11 +114,11 @@ public:
 	void printHelp();
 
 private:
-	constexpr static const char *const commandTemplatePartial = "\t{command}";
-	constexpr static const char *const commandTemplateFull = "\t{command}\n\t\t{description}";
-	constexpr static const char *const keyCommandTemplatePartial = "\t{command}";
-	constexpr static const char *const keyCommandTemplateFull = "\t{command}\t{description}";
-	constexpr static const char *const commandTemplateNewLineReplacement = "\n\t\t";
+	static const char *const commandTemplatePartial;
+	static const char *const commandTemplateFull;
+	static const char *const keyCommandTemplatePartial;
+	static const char *const keyCommandTemplateFull;
+	static const char *const commandTemplateNewLineReplacement;
 
 	SimpleLogging::Logger *logger = Logging.getLogger("SerialCommands", Logging.DEBUG_SERIAL_COMMANDS);;
 

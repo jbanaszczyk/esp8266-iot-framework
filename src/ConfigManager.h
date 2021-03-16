@@ -5,6 +5,12 @@
 #include <TaskSchedulerDeclarations.h>
 #include <EEPROM_Rotate.h>
 
+#include <SimpleLogging.h>
+
+#ifndef DEBUG_IOT_CONFIG_MANAGER
+#define DEBUG_IOT_CONFIG_MANAGER NOTICE
+#endif
+
 typedef uint8_t configManagerChecksum;
 
 class ConfigManager {
@@ -109,6 +115,7 @@ private:
 	}
 
 	std::function<void()> configSaveCallback = nullptr;
+	SimpleLogging::Logger *logger;
 
 };
 
